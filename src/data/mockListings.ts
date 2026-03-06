@@ -26,6 +26,7 @@ export interface Listing {
   highlights: string[];
   availableFrom: string;
   deposit: number;
+  mediaVerificationBadge?: "owner_verified" | "platform_verified" | "premium_verified" | null;
 }
 
 export const listings: Listing[] = [

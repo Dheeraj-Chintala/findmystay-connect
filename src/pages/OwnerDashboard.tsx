@@ -1,5 +1,5 @@
-import { Link } from "react-router-dom";
-import { Building2, Plus, Eye, Star, TrendingUp, Users, MessageSquare, IndianRupee, BarChart3, Settings, BadgeCheck, MoreHorizontal } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Building2, Plus, Eye, Star, TrendingUp, Users, MessageSquare, IndianRupee, BarChart3, Settings, BadgeCheck, MoreHorizontal, Camera, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
@@ -21,6 +21,7 @@ const bookingRequests = [
 ];
 
 const OwnerDashboard = () => {
+  const navigate = useNavigate();
   const myListings = listings.slice(0, 3);
 
   return (
@@ -34,9 +35,11 @@ const OwnerDashboard = () => {
               <h1 className="font-heading font-bold text-2xl md:text-3xl">Owner Dashboard</h1>
               <p className="text-muted-foreground text-sm mt-1">Manage your properties and bookings</p>
             </div>
-            <Button variant="hero" className="gap-2 rounded-xl">
-              <Plus className="w-4 h-4" /> Add Property
-            </Button>
+            <div className="flex gap-2 flex-wrap">
+              <Button variant="hero" className="gap-2 rounded-xl">
+                <Plus className="w-4 h-4" /> Add Property
+              </Button>
+            </div>
           </div>
 
           {/* Stats */}
@@ -59,6 +62,45 @@ const OwnerDashboard = () => {
                 <p className="text-muted-foreground text-xs mt-0.5">{stat.label}</p>
               </motion.div>
             ))}
+          </div>
+
+          {/* Media Verification Actions */}
+          <div className="grid sm:grid-cols-2 gap-4 mb-8">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="bg-card rounded-2xl p-5 border border-border/50 shadow-card flex items-center gap-4 cursor-pointer hover:shadow-card-hover transition-all"
+              onClick={() => navigate("/pr-photoshoot-request")}
+            >
+              <div className="w-12 h-12 rounded-xl bg-verified/10 flex items-center justify-center shrink-0">
+                <Camera className="w-6 h-6 text-verified" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-heading font-semibold text-sm">Request Professional Photoshoot</h3>
+                <p className="text-muted-foreground text-xs mt-0.5">Our team visits and captures professional media</p>
+              </div>
+              <Badge className="bg-verified/10 text-verified border-verified/30 border shrink-0">
+                <ShieldCheck className="w-3 h-3 mr-1" /> Premium
+              </Badge>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 }}
+              className="bg-card rounded-2xl p-5 border border-border/50 shadow-card flex items-center gap-4 cursor-pointer hover:shadow-card-hover transition-all"
+              onClick={() => navigate("/self-verify-capture")}
+            >
+              <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
+                <Camera className="w-6 h-6 text-accent" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-heading font-semibold text-sm">Self Verify Listing Media</h3>
+                <p className="text-muted-foreground text-xs mt-0.5">Guided photo capture for instant verification</p>
+              </div>
+              <Badge className="bg-accent/10 text-accent border-accent/30 border shrink-0">Quick</Badge>
+            </motion.div>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-8">

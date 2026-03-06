@@ -1,5 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Star, MapPin, BadgeCheck, Heart, Share2, Shield, Calendar, IndianRupee, Users, Wifi, Wind, UtensilsCrossed, Dumbbell, Car, Zap, Waves, Home, ChevronLeft, ChevronRight, X } from "lucide-react";
+import VerificationBadge from "@/components/VerificationBadge";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -121,11 +122,14 @@ const ListingDetail = () => {
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
                       {listing.verified && (
                         <Badge className="bg-verified text-verified-foreground gap-1 font-semibold">
                           <BadgeCheck className="w-3 h-3" /> Verified
                         </Badge>
+                      )}
+                      {listing.mediaVerificationBadge && (
+                        <VerificationBadge type={listing.mediaVerificationBadge} size="md" />
                       )}
                       <Badge variant="secondary" className="capitalize">{listing.type}</Badge>
                       <Badge variant="secondary" className="capitalize">{listing.gender}</Badge>

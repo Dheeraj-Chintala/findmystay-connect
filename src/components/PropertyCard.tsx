@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
-import { Star, Heart, MapPin, BadgeCheck, Wifi, Wind, UtensilsCrossed } from "lucide-react";
+import { Star, Heart, MapPin, BadgeCheck, Wifi, Wind, UtensilsCrossed, ShieldCheck, Camera } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import type { Listing } from "@/data/mockListings";
+import VerificationBadge from "@/components/VerificationBadge";
 
 const amenityIcons: Record<string, React.ReactNode> = {
   WiFi: <Wifi className="w-3.5 h-3.5" />,
@@ -40,6 +41,9 @@ const PropertyCard = ({ listing, index = 0 }: PropertyCardProps) => {
                 <Badge className="bg-verified text-verified-foreground gap-1 text-[11px] font-semibold shadow-sm">
                   <BadgeCheck className="w-3 h-3" /> Verified
                 </Badge>
+              )}
+              {listing.mediaVerificationBadge && (
+                <VerificationBadge type={listing.mediaVerificationBadge as any} size="sm" showLabel={false} />
               )}
               <Badge variant="secondary" className="text-[11px] capitalize bg-card/90 backdrop-blur-sm shadow-sm">{listing.type}</Badge>
             </div>

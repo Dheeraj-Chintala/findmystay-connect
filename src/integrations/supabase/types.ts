@@ -183,6 +183,7 @@ export type Database = {
           latitude: number | null
           location: string
           longitude: number | null
+          media_verification_badge: string | null
           owner_id: string
           price_max: number
           price_min: number
@@ -203,6 +204,7 @@ export type Database = {
           latitude?: number | null
           location: string
           longitude?: number | null
+          media_verification_badge?: string | null
           owner_id: string
           price_max?: number
           price_min?: number
@@ -223,6 +225,7 @@ export type Database = {
           latitude?: number | null
           location?: string
           longitude?: number | null
+          media_verification_badge?: string | null
           owner_id?: string
           price_max?: number
           price_min?: number
@@ -233,6 +236,59 @@ export type Database = {
           verified_status?: Database["public"]["Enums"]["verification_status"]
         }
         Relationships: []
+      }
+      media_verification_requests: {
+        Row: {
+          admin_notes: string | null
+          areas_to_capture: string[] | null
+          assigned_pr_member: string | null
+          created_at: string
+          hostel_id: string
+          id: string
+          owner_id: string
+          requested_date: string | null
+          risk_score: number | null
+          status: Database["public"]["Enums"]["media_verification_status"]
+          updated_at: string
+          verification_type: Database["public"]["Enums"]["media_verification_type"]
+        }
+        Insert: {
+          admin_notes?: string | null
+          areas_to_capture?: string[] | null
+          assigned_pr_member?: string | null
+          created_at?: string
+          hostel_id: string
+          id?: string
+          owner_id: string
+          requested_date?: string | null
+          risk_score?: number | null
+          status?: Database["public"]["Enums"]["media_verification_status"]
+          updated_at?: string
+          verification_type: Database["public"]["Enums"]["media_verification_type"]
+        }
+        Update: {
+          admin_notes?: string | null
+          areas_to_capture?: string[] | null
+          assigned_pr_member?: string | null
+          created_at?: string
+          hostel_id?: string
+          id?: string
+          owner_id?: string
+          requested_date?: string | null
+          risk_score?: number | null
+          status?: Database["public"]["Enums"]["media_verification_status"]
+          updated_at?: string
+          verification_type?: Database["public"]["Enums"]["media_verification_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_verification_requests_hostel_id_fkey"
+            columns: ["hostel_id"]
+            isOneToOne: false
+            referencedRelation: "hostels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -506,6 +562,56 @@ export type Database = {
           },
         ]
       }
+      verification_media: {
+        Row: {
+          capture_step: string | null
+          capture_timestamp: string | null
+          created_at: string
+          gps_latitude: number | null
+          gps_longitude: number | null
+          id: string
+          media_type: string
+          media_url: string
+          metadata: Json | null
+          request_id: string
+          uploader_id: string
+        }
+        Insert: {
+          capture_step?: string | null
+          capture_timestamp?: string | null
+          created_at?: string
+          gps_latitude?: number | null
+          gps_longitude?: number | null
+          id?: string
+          media_type?: string
+          media_url: string
+          metadata?: Json | null
+          request_id: string
+          uploader_id: string
+        }
+        Update: {
+          capture_step?: string | null
+          capture_timestamp?: string | null
+          created_at?: string
+          gps_latitude?: number | null
+          gps_longitude?: number | null
+          id?: string
+          media_type?: string
+          media_url?: string
+          metadata?: Json | null
+          request_id?: string
+          uploader_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verification_media_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "media_verification_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -527,6 +633,16 @@ export type Database = {
         | "rejected"
         | "cancelled"
         | "completed"
+      media_verification_status:
+        | "pending"
+        | "scheduled"
+        | "under_review"
+        | "platform_verified"
+        | "owner_verified"
+        | "ai_check"
+        | "admin_review"
+        | "rejected"
+      media_verification_type: "pr_team" | "self_capture"
       verification_status: "pending" | "under_review" | "verified" | "rejected"
     }
     CompositeTypes: {
@@ -663,6 +779,17 @@ export const Constants = {
         "cancelled",
         "completed",
       ],
+      media_verification_status: [
+        "pending",
+        "scheduled",
+        "under_review",
+        "platform_verified",
+        "owner_verified",
+        "ai_check",
+        "admin_review",
+        "rejected",
+      ],
+      media_verification_type: ["pr_team", "self_capture"],
       verification_status: ["pending", "under_review", "verified", "rejected"],
     },
   },

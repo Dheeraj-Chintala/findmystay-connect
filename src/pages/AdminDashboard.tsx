@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Building2, Users, BadgeCheck, AlertTriangle, Eye, ShieldCheck, XCircle, CheckCircle2, Clock, Loader2, FileText, ExternalLink } from "lucide-react";
+import { Building2, Users, BadgeCheck, AlertTriangle, Eye, ShieldCheck, XCircle, CheckCircle2, Clock, Loader2, FileText, ExternalLink, Camera } from "lucide-react";
+import AdminMediaVerification from "@/components/AdminMediaVerification";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -297,6 +298,11 @@ const AdminDashboard = () => {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Media Verification Management */}
+          <div className="mt-8">
+            <AdminMediaVerification />
           </div>
         </div>
       </div>
