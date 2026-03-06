@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Building2, Mail, Lock, User, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -19,6 +20,24 @@ const Login = () => {
   const [regPassword, setRegPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { user, hasRole, rolesLoaded } = useAuth();
+
+  // Role-based redirect when already logged in
+  useEffect(() => {
+    if (user && rolesLoaded) {
+      redirectByRole();
+    }
+  }, [user, rolesLoaded]);
+
+  const redirectByRole = () => {
+    if (hasRole("admin")) {
+      navigate("/admin");
+    } else if (hasRole("owner")) {
+      navigate("/owner");
+    } else {
+      navigate("/dashboard");
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +51,7 @@ const Login = () => {
       toast.error(error.message);
     } else {
       toast.success("Welcome back!");
-      navigate("/");
+      // Redirect will happen via useEffect when roles load
     }
   };
 
@@ -63,7 +82,6 @@ const Login = () => {
 
     setSubmitting(false);
     toast.success("Account created! Check your email to confirm.");
-    navigate("/");
   };
 
   return (

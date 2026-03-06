@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, User, Heart, Building2, LogOut, ShieldCheck, FileCheck } from "lucide-react";
+import { Menu, X, User, Building2, LogOut, ShieldCheck, FileCheck, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +20,12 @@ const Navbar = () => {
     navigate("/");
   };
 
+  const getDashboardLink = () => {
+    if (hasRole("admin")) return "/admin";
+    if (hasRole("owner")) return "/owner";
+    return "/dashboard";
+  };
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-xl shadow-card border-b border-border/50 transition-all duration-300">
       <div className="container mx-auto px-4 lg:px-8">
@@ -36,12 +42,6 @@ const Navbar = () => {
           <div className="hidden md:flex items-center gap-1">
             <Link to="/listings"><Button variant="ghost" size="sm">Explore</Button></Link>
             <Link to="/map"><Button variant="ghost" size="sm">Map</Button></Link>
-            {(hasRole("owner") || hasRole("admin")) && (
-              <Link to="/owner-dashboard"><Button variant="ghost" size="sm">My Properties</Button></Link>
-            )}
-            {hasRole("admin") && (
-              <Link to="/admin-dashboard"><Button variant="ghost" size="sm" className="gap-1"><ShieldCheck className="w-3.5 h-3.5" />Admin</Button></Link>
-            )}
             <div className="w-px h-6 bg-border mx-2" />
 
             {user ? (
@@ -55,14 +55,17 @@ const Navbar = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem onClick={() => navigate(getDashboardLink())} className="gap-2">
+                    <LayoutDashboard className="w-4 h-4" /> Dashboard
+                  </DropdownMenuItem>
                   {hasRole("owner") && (
-                    <DropdownMenuItem onClick={() => navigate("/verify-property")} className="gap-2">
-                      <FileCheck className="w-4 h-4" /> Verify Property
+                    <DropdownMenuItem onClick={() => navigate("/owner")} className="gap-2">
+                      <Building2 className="w-4 h-4" /> Owner Portal
                     </DropdownMenuItem>
                   )}
                   {hasRole("admin") && (
-                    <DropdownMenuItem onClick={() => navigate("/admin-dashboard")} className="gap-2">
-                      <ShieldCheck className="w-4 h-4" /> Admin Dashboard
+                    <DropdownMenuItem onClick={() => navigate("/admin")} className="gap-2">
+                      <ShieldCheck className="w-4 h-4" /> Admin Panel
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
@@ -97,14 +100,8 @@ const Navbar = () => {
             <div className="p-4 space-y-2">
               <Link to="/listings" className="block py-2.5 px-3 text-sm font-medium rounded-lg hover:bg-secondary" onClick={() => setMobileOpen(false)}>Explore</Link>
               <Link to="/map" className="block py-2.5 px-3 text-sm font-medium rounded-lg hover:bg-secondary" onClick={() => setMobileOpen(false)}>Map</Link>
-              {hasRole("owner") && (
-                <>
-                  <Link to="/owner-dashboard" className="block py-2.5 px-3 text-sm font-medium rounded-lg hover:bg-secondary" onClick={() => setMobileOpen(false)}>My Properties</Link>
-                  <Link to="/verify-property" className="block py-2.5 px-3 text-sm font-medium rounded-lg hover:bg-secondary" onClick={() => setMobileOpen(false)}>Verify Property</Link>
-                </>
-              )}
-              {hasRole("admin") && (
-                <Link to="/admin-dashboard" className="block py-2.5 px-3 text-sm font-medium rounded-lg hover:bg-secondary" onClick={() => setMobileOpen(false)}>Admin</Link>
+              {user && (
+                <Link to={getDashboardLink()} className="block py-2.5 px-3 text-sm font-medium rounded-lg hover:bg-secondary" onClick={() => setMobileOpen(false)}>Dashboard</Link>
               )}
               <div className="pt-2">
                 {user ? (

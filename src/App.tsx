@@ -13,6 +13,7 @@ import BookingRequest from "./pages/BookingRequest";
 import Reviews from "./pages/Reviews";
 import OwnerDashboard from "./pages/OwnerDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import UserDashboard from "./pages/UserDashboard";
 import VerificationSubmit from "./pages/VerificationSubmit";
 import PRPhotoshootRequest from "./pages/PRPhotoshootRequest";
 import SelfVerifyCapture from "./pages/SelfVerifyCapture";
@@ -36,6 +37,11 @@ const App = () => (
             <Route path="/listing/:id" element={<ListingDetail />} />
             <Route path="/booking/:id" element={<BookingRequest />} />
             <Route path="/listing/:id/reviews" element={<Reviews />} />
+            {/* Dashboard routes with nested sub-routes */}
+            <Route path="/owner/*" element={<OwnerDashboard />} />
+            <Route path="/admin/*" element={<AdminDashboard />} />
+            <Route path="/dashboard/*" element={<UserDashboard />} />
+            {/* Legacy routes redirect */}
             <Route path="/owner-dashboard" element={<OwnerDashboard />} />
             <Route path="/admin-dashboard" element={<AdminDashboard />} />
             <Route path="/verify-property" element={<VerificationSubmit />} />
