@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Building2, Mail, ArrowRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ const Login = () => {
   const [submitting, setSubmitting] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [isNewUser, setIsNewUser] = useState(false);
+  const verifyingRef = useRef(false);
   const navigate = useNavigate();
   const { user, hasRole, rolesLoaded } = useAuth();
 
@@ -70,7 +71,8 @@ const Login = () => {
   };
 
   const handleVerifyOTP = async () => {
-    if (otp.length !== 6) return;
+    if (otp.length !== 6 || verifyingRef.current) return;
+    verifyingRef.current = true;
     setSubmitting(true);
 
     try {
@@ -97,6 +99,7 @@ const Login = () => {
       toast.error("Something went wrong. Please try again.");
     }
     setSubmitting(false);
+    verifyingRef.current = false;
   };
 
   const handleResendOTP = async () => {

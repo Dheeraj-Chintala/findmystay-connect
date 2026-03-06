@@ -11,13 +11,19 @@ interface OTPInputProps {
 const OTPInput = ({ value, onChange, onComplete, length = 6 }: OTPInputProps) => {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  const completedRef = useRef(false);
+
   useEffect(() => {
     inputRefs.current[0]?.focus();
   }, []);
 
   useEffect(() => {
-    if (value.length === length && onComplete) {
+    if (value.length === length && onComplete && !completedRef.current) {
+      completedRef.current = true;
       onComplete();
+    }
+    if (value.length < length) {
+      completedRef.current = false;
     }
   }, [value, length, onComplete]);
 
