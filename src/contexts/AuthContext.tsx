@@ -50,7 +50,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       async (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        if (session?.user) {
+      if (session?.user) {
+          // Reset rolesLoaded so consumers wait for fresh role data
+          setRolesLoaded(false);
           // Use setTimeout to avoid Supabase deadlock
           setTimeout(() => fetchRoles(session.user.id), 0);
         } else {
