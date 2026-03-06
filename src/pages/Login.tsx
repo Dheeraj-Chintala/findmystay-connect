@@ -49,6 +49,13 @@ const Login = () => {
     e.preventDefault();
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail || submitting) return;
+
+    // Client-side email validation
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -57,14 +64,16 @@ const Login = () => {
       });
 
       if (res.error) {
-        toast.error(res.error.message || "Failed to send OTP");
+        // Try to extract the error message from the response body
+        const errorMsg = res.data?.error || res.error.message || "Failed to send OTP";
+        toast.error(errorMsg);
       } else if (res.data?.error) {
         toast.error(res.data.error);
       } else {
         toast.success("OTP sent to your email!");
         setEmail(normalizedEmail);
         setStep("otp");
-        setCountdown(300); // 5 minutes
+        setCountdown(300);
       }
     } catch {
       toast.error("Something went wrong. Please try again.");
