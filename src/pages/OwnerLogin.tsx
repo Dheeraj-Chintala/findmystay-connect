@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Building2, Mail, ArrowRight, ShieldCheck, Home } from "lucide-react";
+import { Building2, Mail, ArrowRight, ShieldCheck, Home, Lock, MapPin, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import OTPInput from "@/components/auth/OTPInput";
 
-type AuthStep = "contact" | "otp";
+type AuthStep = "contact" | "otp" | "register";
 
 const OwnerLogin = () => {
   const [step, setStep] = useState<AuthStep>("contact");
@@ -19,9 +19,15 @@ const OwnerLogin = () => {
   const [otp, setOtp] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [resendCountdown, setResendCountdown] = useState(0);
   const verifyingRef = useRef(false);
   const navigate = useNavigate();
   const { user, hasRole, rolesLoaded } = useAuth();
+
+  // Registration fields
+  const [hostelName, setHostelName] = useState("");
+  const [propertyLocation, setPropertyLocation] = useState("");
+  const [contactNumber, setContactNumber] = useState("");
 
   useEffect(() => {
     if (user && rolesLoaded) {
@@ -37,6 +43,13 @@ const OwnerLogin = () => {
       return () => clearTimeout(timer);
     }
   }, [countdown]);
+
+  useEffect(() => {
+    if (resendCountdown > 0) {
+      const timer = setTimeout(() => setResendCountdown(resendCountdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCountdown]);
 
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,6 +73,7 @@ const OwnerLogin = () => {
         setEmail(normalizedEmail);
         setStep("otp");
         setCountdown(300);
+        setResendCountdown(60);
       }
     } catch {
       toast.error("Something went wrong. Please try again.");
@@ -84,7 +98,13 @@ const OwnerLogin = () => {
           access_token: res.data.session.access_token,
           refresh_token: res.data.session.refresh_token,
         });
-        toast.success(res.data.message || "Welcome!");
+
+        if (res.data.isNewUser) {
+          setStep("register");
+          toast.success("OTP verified! Please complete your profile.");
+        } else {
+          toast.success(res.data.message || "Welcome back!");
+        }
       } else {
         toast.error("Failed to create session");
       }
@@ -95,15 +115,46 @@ const OwnerLogin = () => {
     verifyingRef.current = false;
   };
 
+  const handleCompleteRegistration = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!hostelName.trim() || !propertyLocation.trim()) {
+      toast.error("Please fill in required fields.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) { toast.error("Session expired"); setSubmitting(false); return; }
+
+      const { error } = await supabase.from("profiles").update({
+        full_name: fullName.trim(),
+        phone: contactNumber.trim() || null,
+        hostel_name: hostelName.trim(),
+        property_location: propertyLocation.trim(),
+        onboarding_complete: true,
+      }).eq("user_id", currentUser.id);
+
+      if (error) {
+        toast.error("Failed to save profile. Please try again.");
+      } else {
+        toast.success("Profile created! Welcome to StayNest!");
+        navigate("/owner");
+      }
+    } catch {
+      toast.error("Something went wrong.");
+    }
+    setSubmitting(false);
+  };
+
   const handleResendOTP = async () => {
-    if (countdown > 0) return;
+    if (resendCountdown > 0) return;
     setSubmitting(true);
     try {
       const res = await supabase.functions.invoke("otp-auth", {
         body: { action: "send", contact: email.trim().toLowerCase(), role: "owner", full_name: fullName.trim() },
       });
       if (res.data?.error) toast.error(res.data.error);
-      else { toast.success("OTP resent!"); setCountdown(300); }
+      else { toast.success("OTP resent!"); setCountdown(300); setResendCountdown(60); }
     } catch { toast.error("Failed to resend OTP"); }
     setSubmitting(false);
   };
@@ -176,6 +227,12 @@ const OwnerLogin = () => {
                   </Button>
                 </form>
 
+                {/* Security message */}
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-muted/50 border border-border">
+                  <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <p className="text-xs text-muted-foreground">Your login is protected with secure OTP verification.</p>
+                </div>
+
                 <p className="text-xs text-center text-muted-foreground">
                   Looking for accommodation?{" "}
                   <Link to="/login" className="text-primary hover:underline font-medium">Student / Employee Login</Link>
@@ -191,7 +248,10 @@ const OwnerLogin = () => {
                     We sent a 6-digit code to <span className="font-medium text-foreground">{email}</span>
                   </p>
                 </div>
+
                 <OTPInput value={otp} onChange={setOtp} onComplete={handleVerifyOTP} />
+
+                {/* Expiry countdown */}
                 <div className="text-center">
                   {countdown > 0 ? (
                     <p className="text-sm text-muted-foreground">Code expires in <span className="font-mono font-semibold text-primary">{formatTime(countdown)}</span></p>
@@ -199,15 +259,69 @@ const OwnerLogin = () => {
                     <p className="text-sm text-destructive font-medium">Code expired</p>
                   )}
                 </div>
+
                 <Button onClick={handleVerifyOTP} variant="hero" size="lg" className="w-full gap-2" disabled={submitting || otp.length !== 6}>
                   {submitting ? "Verifying..." : "Verify & Continue"}
                   {!submitting && <ShieldCheck className="w-4 h-4" />}
                 </Button>
+
                 <div className="flex items-center justify-between">
-                  <button type="button" onClick={() => { setStep("contact"); setOtp(""); setCountdown(0); }} className="text-sm text-muted-foreground hover:text-foreground transition-colors">← Change email</button>
-                  <button type="button" onClick={handleResendOTP} disabled={countdown > 0 || submitting} className="text-sm text-primary hover:text-primary/80 transition-colors disabled:text-muted-foreground disabled:cursor-not-allowed">Resend Code</button>
+                  <button type="button" onClick={() => { setStep("contact"); setOtp(""); setCountdown(0); setResendCountdown(0); }} className="text-sm text-muted-foreground hover:text-foreground transition-colors">← Change email</button>
+                  <button
+                    type="button"
+                    onClick={handleResendOTP}
+                    disabled={resendCountdown > 0 || submitting}
+                    className="text-sm text-primary hover:text-primary/80 transition-colors disabled:text-muted-foreground disabled:cursor-not-allowed"
+                  >
+                    {resendCountdown > 0 ? `Resend in ${resendCountdown}s` : "Resend Code"}
+                  </button>
                 </div>
-                <p className="text-xs text-center text-muted-foreground">Check your spam folder if you don't see the email</p>
+
+                {/* Security message */}
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-muted/50 border border-border">
+                  <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <p className="text-xs text-muted-foreground">Your login is protected with secure OTP verification.</p>
+                </div>
+              </motion.div>
+            )}
+
+            {step === "register" && (
+              <motion.div key="register" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
+                <div>
+                  <h1 className="font-heading font-bold text-2xl mb-1">Complete Your Profile</h1>
+                  <p className="text-muted-foreground text-sm">Tell us about your property to get started</p>
+                </div>
+
+                <form onSubmit={handleCompleteRegistration} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Hostel / PG Name *</Label>
+                    <div className="relative">
+                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input type="text" placeholder="e.g. Sunshine Hostel" className="pl-10 h-11 rounded-xl" required value={hostelName} onChange={(e) => setHostelName(e.target.value)} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Property Location *</Label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input type="text" placeholder="e.g. HSR Layout, Bangalore" className="pl-10 h-11 rounded-xl" required value={propertyLocation} onChange={(e) => setPropertyLocation(e.target.value)} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Contact Number</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input type="tel" placeholder="+91 9876543210" className="pl-10 h-11 rounded-xl" value={contactNumber} onChange={(e) => setContactNumber(e.target.value)} />
+                    </div>
+                  </div>
+
+                  <Button type="submit" variant="hero" size="lg" className="w-full gap-2" disabled={submitting}>
+                    {submitting ? "Saving..." : "Complete Registration"}
+                    {!submitting && <ArrowRight className="w-4 h-4" />}
+                  </Button>
+                </form>
               </motion.div>
             )}
           </AnimatePresence>
