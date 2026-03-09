@@ -370,31 +370,52 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          budget_max: number | null
+          budget_min: number | null
           created_at: string
           email: string | null
           full_name: string
+          hostel_name: string | null
           id: string
+          occupation: string | null
+          onboarding_complete: boolean | null
           phone: string | null
+          preferred_location: string | null
+          property_location: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
           created_at?: string
           email?: string | null
           full_name?: string
+          hostel_name?: string | null
           id?: string
+          occupation?: string | null
+          onboarding_complete?: boolean | null
           phone?: string | null
+          preferred_location?: string | null
+          property_location?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
           created_at?: string
           email?: string | null
           full_name?: string
+          hostel_name?: string | null
           id?: string
+          occupation?: string | null
+          onboarding_complete?: boolean | null
           phone?: string | null
+          preferred_location?: string | null
+          property_location?: string | null
           updated_at?: string
           user_id?: string
         }
