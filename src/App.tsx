@@ -57,6 +57,11 @@ const App = () => (
             <Route path="/self-verify-capture" element={<SelfVerifyCapture />} />
             <Route path="/owner-verification-pending" element={<OwnerVerificationPending />} />
             <Route path="/map" element={<MapView />} />
+            {/* Standalone laundry routes */}
+            <Route path="/laundry" element={<LaundryHome />} />
+            <Route path="/laundry/book-service" element={<LaundryBookService />} />
+            <Route path="/laundry/orders" element={<LaundryBookService />} />
+            <Route path="/laundry/order-details" element={<LaundryBookService />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
