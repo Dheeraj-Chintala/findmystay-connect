@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useNavigate, Routes, Route } from "react-router-dom";
 import {
   BarChart3, BadgeCheck, Users, AlertTriangle,
-  MessageSquare, Building2, ShieldCheck, MessageSquareWarning, Activity
+  MessageSquare, Building2, ShieldCheck, MessageSquareWarning, Activity, ShirtIcon
 } from "lucide-react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import AdminAnalytics from "@/components/admin/AdminAnalytics";
