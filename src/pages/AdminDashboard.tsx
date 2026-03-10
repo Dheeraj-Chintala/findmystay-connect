@@ -29,6 +29,7 @@ const sidebarGroups = [
   {
     label: "Management",
     items: [
+      { title: "Owner Verification", url: "/admin/owner-verification", icon: BadgeCheck },
       { title: "Hostel Approvals", url: "/admin/approvals", icon: BadgeCheck },
       { title: "Users", url: "/admin/users", icon: Users },
       { title: "Fraud Alerts", url: "/admin/fraud", icon: AlertTriangle },
