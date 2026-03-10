@@ -33,6 +33,7 @@ const OwnerLogin = () => {
     if (user && rolesLoaded) {
       if (hasRole("admin")) navigate("/admin");
       else if (hasRole("owner")) navigate("/owner");
+      else if (hasRole("owner_pending" as any)) navigate("/owner-verification-pending");
       else navigate("/dashboard");
     }
   }, [user, rolesLoaded]);
@@ -101,7 +102,7 @@ const OwnerLogin = () => {
 
         if (res.data.isNewUser) {
           setStep("register");
-          toast.success("OTP verified! Please complete your profile.");
+          toast.success("OTP verified! Complete your owner registration.");
         } else {
           toast.success(res.data.message || "Welcome back!");
         }
@@ -123,22 +124,23 @@ const OwnerLogin = () => {
     }
     setSubmitting(true);
     try {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      if (!currentUser) { toast.error("Session expired"); setSubmitting(false); return; }
+      const res = await supabase.functions.invoke("complete-registration", {
+        body: {
+          selected_role: "owner_pending",
+          profile_data: {
+            full_name: fullName.trim(),
+            hostel_name: hostelName.trim(),
+            property_location: propertyLocation.trim(),
+            phone: contactNumber.trim() || null,
+          },
+        },
+      });
 
-      const { error } = await supabase.from("profiles").update({
-        full_name: fullName.trim(),
-        phone: contactNumber.trim() || null,
-        hostel_name: hostelName.trim(),
-        property_location: propertyLocation.trim(),
-        onboarding_complete: true,
-      }).eq("user_id", currentUser.id);
-
-      if (error) {
-        toast.error("Failed to save profile. Please try again.");
+      if (res.error || res.data?.error) {
+        toast.error(res.data?.error || "Registration failed. Please try again.");
       } else {
-        toast.success("Profile created! Welcome to StayNest!");
-        navigate("/owner");
+        toast.success(res.data.message);
+        window.location.href = "/owner-verification-pending";
       }
     } catch {
       toast.error("Something went wrong.");
@@ -163,7 +165,6 @@ const OwnerLogin = () => {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Left decorative - owner themed */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-accent/90 to-primary/70 relative items-center justify-center p-12">
         <div className="absolute top-1/4 -left-20 w-64 h-64 bg-accent/20 rounded-full blur-3xl" />
         <div className="absolute bottom-1/4 -right-20 w-64 h-64 bg-primary/20 rounded-full blur-3xl" />
@@ -185,7 +186,6 @@ const OwnerLogin = () => {
         </div>
       </div>
 
-      {/* Right form */}
       <div className="flex-1 flex items-center justify-center p-6">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
           <Link to="/" className="lg:hidden flex items-center gap-2 mb-8">
@@ -195,7 +195,6 @@ const OwnerLogin = () => {
             <span className="font-heading font-extrabold text-xl">StayNest</span>
           </Link>
 
-          {/* Role badge */}
           <div className="mb-6 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/10 text-accent-foreground text-sm font-medium border border-accent/20">
             <Home className="w-4 h-4" />
             Property Owner Login
@@ -227,7 +226,6 @@ const OwnerLogin = () => {
                   </Button>
                 </form>
 
-                {/* Security message */}
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-muted/50 border border-border">
                   <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
                   <p className="text-xs text-muted-foreground">Your login is protected with secure OTP verification.</p>
@@ -251,7 +249,6 @@ const OwnerLogin = () => {
 
                 <OTPInput value={otp} onChange={setOtp} onComplete={handleVerifyOTP} />
 
-                {/* Expiry countdown */}
                 <div className="text-center">
                   {countdown > 0 ? (
                     <p className="text-sm text-muted-foreground">Code expires in <span className="font-mono font-semibold text-primary">{formatTime(countdown)}</span></p>
@@ -267,17 +264,11 @@ const OwnerLogin = () => {
 
                 <div className="flex items-center justify-between">
                   <button type="button" onClick={() => { setStep("contact"); setOtp(""); setCountdown(0); setResendCountdown(0); }} className="text-sm text-muted-foreground hover:text-foreground transition-colors">← Change email</button>
-                  <button
-                    type="button"
-                    onClick={handleResendOTP}
-                    disabled={resendCountdown > 0 || submitting}
-                    className="text-sm text-primary hover:text-primary/80 transition-colors disabled:text-muted-foreground disabled:cursor-not-allowed"
-                  >
+                  <button type="button" onClick={handleResendOTP} disabled={resendCountdown > 0 || submitting} className="text-sm text-primary hover:text-primary/80 transition-colors disabled:text-muted-foreground disabled:cursor-not-allowed">
                     {resendCountdown > 0 ? `Resend in ${resendCountdown}s` : "Resend Code"}
                   </button>
                 </div>
 
-                {/* Security message */}
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-muted/50 border border-border">
                   <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
                   <p className="text-xs text-muted-foreground">Your login is protected with secure OTP verification.</p>
@@ -288,7 +279,7 @@ const OwnerLogin = () => {
             {step === "register" && (
               <motion.div key="register" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
                 <div>
-                  <h1 className="font-heading font-bold text-2xl mb-1">Complete Your Profile</h1>
+                  <h1 className="font-heading font-bold text-2xl mb-1">Property Owner Registration</h1>
                   <p className="text-muted-foreground text-sm">Tell us about your property to get started</p>
                 </div>
 
@@ -317,8 +308,14 @@ const OwnerLogin = () => {
                     </div>
                   </div>
 
+                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800">
+                    <p className="text-xs text-amber-700 dark:text-amber-400">
+                      <strong>Note:</strong> Your owner account will need admin verification before you can access the Owner Dashboard.
+                    </p>
+                  </div>
+
                   <Button type="submit" variant="hero" size="lg" className="w-full gap-2" disabled={submitting}>
-                    {submitting ? "Saving..." : "Complete Registration"}
+                    {submitting ? "Saving..." : "Submit for Verification"}
                     {!submitting && <ArrowRight className="w-4 h-4" />}
                   </Button>
                 </form>

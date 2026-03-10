@@ -254,15 +254,8 @@ Deno.serve(async (req) => {
           );
         }
 
-        // Assign role if specified
-        if (role && role !== "user" && newUser.user) {
-          await supabase.from("user_roles").insert({
-            user_id: newUser.user.id,
-            role: role,
-          });
-        }
-
-        // Generate session for new user
+        // Role assignment is now handled by the complete-registration edge function
+        // The handle_new_user trigger assigns a default 'user' role
         const { data: tokenData } = await supabase.auth.admin.generateLink({
           type: "magiclink",
           email: normalizedContact,
