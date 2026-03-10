@@ -67,6 +67,7 @@ const UserDashboard = () => {
         <Route path="saved" element={<UserSaved />} />
         <Route path="bookings" element={<UserBookings />} />
         <Route path="laundry" element={<UserLaundry />} />
+        <Route path="referrals" element={<ReferAndEarn />} />
         <Route path="reviews" element={<UserReviews />} />
         <Route path="profile" element={<UserProfile />} />
       </Routes>
