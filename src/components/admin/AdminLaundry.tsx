@@ -57,9 +57,19 @@ const AdminLaundry = () => {
   const fetchOrders = async () => {
     const { data } = await supabase
       .from("laundry_orders")
-      .select("*, laundry_order_items(*, laundry_services(name)), laundry_ratings(*), profiles!laundry_orders_user_id_fkey(full_name, email, phone)")
+      .select("*, laundry_order_items(*, laundry_services(name)), laundry_ratings(*)")
       .order("created_at", { ascending: false });
-    setOrders(data || []);
+    
+    // Fetch user profiles separately
+    if (data && data.length > 0) {
+      const userIds = [...new Set(data.map(o => o.user_id))];
+      const { data: profiles } = await supabase.from("profiles").select("user_id, full_name, email, phone").in("user_id", userIds);
+      const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
+      const enriched = data.map(o => ({ ...o, profile: profileMap.get(o.user_id) || null }));
+      setOrders(enriched);
+    } else {
+      setOrders(data || []);
+    }
     setLoading(false);
   };
 
