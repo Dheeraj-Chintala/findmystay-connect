@@ -193,6 +193,7 @@ export type Database = {
           id: string
           image_url: string
           uploaded_at: string
+          uploaded_by: string
         }
         Insert: {
           display_order?: number | null
@@ -200,6 +201,7 @@ export type Database = {
           id?: string
           image_url: string
           uploaded_at?: string
+          uploaded_by?: string
         }
         Update: {
           display_order?: number | null
@@ -207,10 +209,46 @@ export type Database = {
           id?: string
           image_url?: string
           uploaded_at?: string
+          uploaded_by?: string
         }
         Relationships: [
           {
             foreignKeyName: "hostel_images_hostel_id_fkey"
+            columns: ["hostel_id"]
+            isOneToOne: false
+            referencedRelation: "hostels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hostel_videos: {
+        Row: {
+          created_at: string
+          display_order: number | null
+          hostel_id: string
+          id: string
+          uploaded_by: string
+          video_url: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number | null
+          hostel_id: string
+          id?: string
+          uploaded_by?: string
+          video_url: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number | null
+          hostel_id?: string
+          id?: string
+          uploaded_by?: string
+          video_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hostel_videos_hostel_id_fkey"
             columns: ["hostel_id"]
             isOneToOne: false
             referencedRelation: "hostels"
