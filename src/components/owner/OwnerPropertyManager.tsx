@@ -63,7 +63,6 @@ const OwnerPropertyManager = () => {
         const videos = (videosRes.data || []).map((vid: any) => ({ id: vid.id, url: vid.video_url, uploaded_by: vid.uploaded_by || "owner", display_order: vid.display_order }));
         enriched.push({ ...h, rooms: roomsRes.data || [], images, videos });
       }
-      }
       setHostels(enriched);
     }
     setLoading(false);
