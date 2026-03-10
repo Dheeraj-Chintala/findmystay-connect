@@ -80,6 +80,7 @@ const AdminDashboard = () => {
         <Route path="reviews" element={<AdminReviewModeration />} />
         <Route path="media" element={<AdminMediaVerification />} />
         <Route path="complaints" element={<AdminComplaints />} />
+        <Route path="laundry" element={<AdminLaundry />} />
       </Routes>
     </DashboardLayout>
   );

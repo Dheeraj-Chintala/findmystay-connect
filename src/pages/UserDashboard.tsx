@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useNavigate, Routes, Route } from "react-router-dom";
 import {
   Home, Search, Heart, Calendar, Star, User,
-  Sparkles, MapPin
+  Sparkles, MapPin, ShirtIcon
 } from "lucide-react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import UserHome from "@/components/user/UserHome";
@@ -11,6 +11,7 @@ import UserSaved from "@/components/user/UserSaved";
 import UserBookings from "@/components/user/UserBookings";
 import UserReviews from "@/components/user/UserReviews";
 import UserProfile from "@/components/user/UserProfile";
+import UserLaundry from "@/components/user/UserLaundry";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 
@@ -27,6 +28,7 @@ const sidebarGroups = [
     label: "Activity",
     items: [
       { title: "Bookings", url: "/dashboard/bookings", icon: Calendar },
+      { title: "Laundry", url: "/dashboard/laundry", icon: ShirtIcon },
       { title: "Reviews", url: "/dashboard/reviews", icon: Star },
     ],
   },
@@ -62,6 +64,7 @@ const UserDashboard = () => {
         <Route path="search" element={<UserSearch />} />
         <Route path="saved" element={<UserSaved />} />
         <Route path="bookings" element={<UserBookings />} />
+        <Route path="laundry" element={<UserLaundry />} />
         <Route path="reviews" element={<UserReviews />} />
         <Route path="profile" element={<UserProfile />} />
       </Routes>
