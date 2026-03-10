@@ -1,6 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Star, MapPin, BadgeCheck, Heart, Share2, Shield, Calendar, IndianRupee, Users, Wifi, Wind, UtensilsCrossed, Dumbbell, Car, Zap, Waves, Home, ChevronLeft, ChevronRight, X } from "lucide-react";
 import VerificationBadge from "@/components/VerificationBadge";
+import PropertyMediaGallery from "@/components/PropertyMediaGallery";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -8,7 +9,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { listings } from "@/data/mockListings";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
