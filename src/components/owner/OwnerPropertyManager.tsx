@@ -105,6 +105,16 @@ const OwnerPropertyManager = () => {
     setSaving(null);
   };
 
+  const handleResubmit = async (hostelId: string) => {
+    setSaving(hostelId);
+    try {
+      const { error } = await supabase.from("hostels").update({ verified_status: "pending" as any }).eq("id", hostelId);
+      if (error) throw error;
+      toast.success("Property resubmitted for approval.");
+      fetchHostels();
+    } catch (err: any) { toast.error(err.message); }
+    setSaving(null);
+  };
 
   if (loading) {
     return (
