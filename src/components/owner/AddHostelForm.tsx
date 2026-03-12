@@ -132,7 +132,7 @@ const AddHostelForm = ({ onSuccess }: AddHostelFormProps) => {
         }
       }
 
-      toast.success("Property added successfully! Submit for verification.");
+      toast.success("Your property has been submitted for admin approval. You'll be notified once reviewed.");
       setOpen(false);
       onSuccess();
 

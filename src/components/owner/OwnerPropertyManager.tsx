@@ -164,10 +164,21 @@ const OwnerPropertyManager = () => {
                 {statusBadge(hostel.verified_status)}
               </div>
               <p className="text-muted-foreground text-xs">{hostel.location}, {hostel.city}</p>
+              {hostel.verified_status === "rejected" && (
+                <p className="text-destructive text-xs mt-1 font-medium">Your property was rejected. Please update the details and resubmit.</p>
+              )}
+              {hostel.verified_status === "pending" && (
+                <p className="text-amber-600 text-xs mt-1 font-medium">Awaiting admin approval.</p>
+              )}
             </div>
-            <div className="text-right shrink-0">
+            <div className="text-right shrink-0 flex flex-col items-end gap-2">
               <p className="font-heading font-bold text-sm text-primary">₹{hostel.price_min.toLocaleString()} - ₹{hostel.price_max.toLocaleString()}</p>
               <p className="text-muted-foreground text-xs">{hostel.rooms.length} room types · {hostel.images.length} photos · {hostel.videos.length} videos</p>
+              {hostel.verified_status === "rejected" && (
+                <Button variant="outline" size="sm" className="gap-1 rounded-xl text-xs" onClick={(e) => { e.stopPropagation(); handleResubmit(hostel.id); }} disabled={saving === hostel.id}>
+                  {saving === hostel.id ? <Loader2 className="w-3 h-3 animate-spin" /> : null} Edit & Resubmit
+                </Button>
+              )}
             </div>
           </button>
 
