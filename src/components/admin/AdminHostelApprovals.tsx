@@ -44,13 +44,27 @@ const AdminHostelApprovals = () => {
       .select(`
         id, hostel_name, location, city, price_min, price_max, property_type, gender,
         verified_status, created_at, owner_id, description,
-        profiles!hostels_owner_id_fkey(full_name, email),
         hostel_images(image_url, display_order),
         facilities(wifi, ac, food, laundry, gym, parking)
       `)
       .in("verified_status", ["pending", "under_review"])
       .order("created_at", { ascending: false });
-    if (data) setHostels(data as any);
+    
+    if (data) {
+      // Fetch owner profiles separately
+      const ownerIds = [...new Set(data.map((h: any) => h.owner_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, email")
+        .in("user_id", ownerIds);
+      
+      const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
+      
+      setHostels(data.map((h: any) => ({
+        ...h,
+        profiles: profileMap.get(h.owner_id) || null,
+      })));
+    }
     setLoading(false);
   };
 
