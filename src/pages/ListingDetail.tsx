@@ -39,12 +39,61 @@ const mockReviews = [
 const ListingDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const listing = listings.find((l) => l.id === id);
   const [activeImage, setActiveImage] = useState(0);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [liked, setLiked] = useState(false);
+  const [savingLike, setSavingLike] = useState(false);
   const [dbPhotos, setDbPhotos] = useState<{ id: string; url: string; uploaded_by: string; type: "photo" }[]>([]);
   const [dbVideos, setDbVideos] = useState<{ id: string; url: string; uploaded_by: string; type: "video" }[]>([]);
+
+  // Check if hostel is already saved
+  useEffect(() => {
+    if (!user || !id) return;
+    supabase
+      .from("saved_hostels")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("hostel_id", id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setLiked(true);
+      });
+  }, [user, id]);
+
+  const handleSaveToggle = async () => {
+    if (!user) {
+      toast.info("Please sign in to save hostels.");
+      navigate(`/login?redirect=/listing/${id}`);
+      return;
+    }
+    if (savingLike) return;
+    setSavingLike(true);
+    try {
+      if (liked) {
+        await supabase.from("saved_hostels").delete().eq("user_id", user.id).eq("hostel_id", id!);
+        setLiked(false);
+        toast.success("Removed from saved hostels");
+      } else {
+        await supabase.from("saved_hostels").insert({ user_id: user.id, hostel_id: id! });
+        setLiked(true);
+        toast.success("Hostel saved to your favorites!");
+      }
+    } catch {
+      toast.error("Failed to update saved hostels");
+    }
+    setSavingLike(false);
+  };
+
+  const handleBookNow = () => {
+    if (!user) {
+      toast.info("Please sign in or create an account to continue booking.");
+      navigate(`/login?redirect=/booking/${id}`);
+      return;
+    }
+    navigate(`/booking/${id}`);
+  };
 
   useEffect(() => {
     if (!id) return;
