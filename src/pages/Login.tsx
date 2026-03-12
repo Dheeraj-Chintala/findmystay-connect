@@ -30,6 +30,8 @@ const Login = () => {
   const [selectedRole, setSelectedRole] = useState<SelectedRole>(null);
   const verifyingRef = useRef(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectPath = searchParams.get("redirect");
   const { user, hasRole, rolesLoaded } = useAuth();
 
   // Registration fields - tenant
