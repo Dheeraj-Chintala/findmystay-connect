@@ -305,7 +305,11 @@ const Login = () => {
               <motion.div key="contact" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
                 <div>
                   <h1 className="font-heading font-bold text-2xl mb-1">Welcome to StayNest</h1>
-                  <p className="text-muted-foreground text-sm">Enter your details to receive a verification code</p>
+                  <p className="text-muted-foreground text-sm">
+                    {redirectPath
+                      ? "Please sign in or create an account to continue."
+                      : "Enter your details to receive a verification code"}
+                  </p>
                 </div>
 
                 {/* Contact method toggle */}
