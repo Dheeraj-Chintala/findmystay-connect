@@ -33,7 +33,8 @@ const AddHostelForm = ({ onSuccess }: AddHostelFormProps) => {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [images, setImages] = useState<File[]>([]);
+  const [categoryImages, setCategoryImages] = useState<Record<string, File[]>>({});
+  const [photoErrors, setPhotoErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState({
     hostel_name: "",
     description: "",
