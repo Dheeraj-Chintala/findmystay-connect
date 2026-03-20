@@ -247,11 +247,20 @@ const Login = () => {
 
                 <form onSubmit={handleLogin} className="space-y-4">
                   {contactMethod === "email" ? (
-                    <div className="space-y-1.5">
-                      <Label className="text-sm font-medium" style={{ color: "#2C2C2C" }}>Email Address</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9B9B9B]" />
-                        <Input type="email" placeholder="you@example.com" className="pl-10 h-11 rounded-xl border-[#E8E0D8]" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                    <div className="space-y-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-medium" style={{ color: "#2C2C2C" }}>Email Address</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9B9B9B]" />
+                          <Input type="email" placeholder="you@example.com" className="pl-10 h-11 rounded-xl border-[#E8E0D8]" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-medium" style={{ color: "#2C2C2C" }}>Password <span className="text-xs font-normal" style={{ color: "#9B9B9B" }}>(optional — leave blank for OTP)</span></Label>
+                        <div className="relative">
+                          <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9B9B9B]" />
+                          <Input type="password" placeholder="Enter password" className="pl-10 h-11 rounded-xl border-[#E8E0D8]" value={password} onChange={(e) => setPassword(e.target.value)} />
+                        </div>
                       </div>
                     </div>
                   ) : (
