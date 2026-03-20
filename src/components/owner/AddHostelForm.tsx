@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Building2, MapPin, IndianRupee, Users, FileText, Image, Loader2, X, Plus, Upload } from "lucide-react";
+import { Building2, MapPin, IndianRupee, Users, FileText, Loader2, X, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import CategoryPhotoUpload, { validateCategoryImages } from "@/components/owner/CategoryPhotoUpload";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
