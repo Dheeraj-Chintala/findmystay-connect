@@ -19,6 +19,7 @@ const Login = () => {
   const [contactMethod, setContactMethod] = useState<ContactMethod>("mobile");
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
+  const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [countdown, setCountdown] = useState(0);
