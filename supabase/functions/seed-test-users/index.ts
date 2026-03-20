@@ -7,34 +7,18 @@ const corsHeaders = {
 
 const testUsers = [
   {
-    email: "rahul@studenttest.com",
-    full_name: "Rahul Sharma",
-    phone: "9000000001",
-    role: "user" as const,
-    city: "Hyderabad",
-  },
-  {
-    email: "ananya@worktest.com",
-    full_name: "Ananya Verma",
-    phone: "9000000002",
-    role: "user" as const,
-    city: "Hyderabad",
-  },
-  {
-    email: "ramesh@hostelowner.com",
-    full_name: "Ramesh Hostel Owner",
-    phone: "9000000010",
+    email: "owner@testapp.com",
+    full_name: "Owner User",
+    phone: "+919876543210",
     role: "owner" as const,
     city: "Hyderabad",
-    hostel: { name: "Green Leaf Boys Hostel", location: "Madhapur, Hyderabad", gender: "boys" },
   },
   {
-    email: "suresh@pgowner.com",
-    full_name: "Suresh PG Owner",
-    phone: "9000000011",
-    role: "owner" as const,
+    email: "tenant@testapp.com",
+    full_name: "Tenant User",
+    phone: "+919876543211",
+    role: "user" as const,
     city: "Hyderabad",
-    hostel: { name: "Comfort Stay Girls Hostel", location: "Gachibowli, Hyderabad", gender: "girls" },
   },
 ];
 
@@ -51,7 +35,6 @@ Deno.serve(async (req) => {
 
   for (const user of testUsers) {
     try {
-      // Check if user exists
       const { data: existingUsers } = await supabase.auth.admin.listUsers();
       const existing = existingUsers?.users?.find((u) => u.email === user.email);
 
@@ -61,7 +44,6 @@ Deno.serve(async (req) => {
         userId = existing.id;
         results.push({ email: user.email, status: "already_exists" });
       } else {
-        // Create user with password for easy testing
         const { data: newUser, error } = await supabase.auth.admin.createUser({
           email: user.email,
           password: "Test@123",
@@ -77,7 +59,7 @@ Deno.serve(async (req) => {
         results.push({ email: user.email, status: "created" });
       }
 
-      // Ensure profile exists with phone
+      // Upsert profile
       const { data: existingProfile } = await supabase
         .from("profiles")
         .select("id")
@@ -87,7 +69,7 @@ Deno.serve(async (req) => {
       if (existingProfile) {
         await supabase
           .from("profiles")
-          .update({ phone: user.phone, full_name: user.full_name, email: user.email })
+          .update({ phone: user.phone, full_name: user.full_name, email: user.email, account_status: "active" })
           .eq("user_id", userId);
       } else {
         await supabase.from("profiles").insert({
@@ -95,70 +77,25 @@ Deno.serve(async (req) => {
           full_name: user.full_name,
           email: user.email,
           phone: user.phone,
+          account_status: "active",
         });
       }
 
-      // Ensure correct role
-      if (user.role !== "user") {
-        const { data: existingRole } = await supabase
-          .from("user_roles")
-          .select("id")
-          .eq("user_id", userId)
-          .eq("role", user.role)
-          .maybeSingle();
+      // Set role
+      const dbRole = user.role; // 'owner' or 'user'
+      const { data: existingRole } = await supabase
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("role", dbRole)
+        .maybeSingle();
 
-        if (!existingRole) {
-          await supabase.from("user_roles").insert({ user_id: userId, role: user.role });
+      if (!existingRole) {
+        // Remove default 'user' role if setting to owner
+        if (dbRole === "owner") {
+          await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", "user");
         }
-      }
-
-      // Create hostel listing for owners
-      if ("hostel" in user && user.hostel) {
-        const { data: existingHostel } = await supabase
-          .from("hostels")
-          .select("id")
-          .eq("owner_id", userId)
-          .eq("hostel_name", user.hostel.name)
-          .maybeSingle();
-
-        if (!existingHostel) {
-          const { data: hostel } = await supabase.from("hostels").insert({
-            owner_id: userId,
-            hostel_name: user.hostel.name,
-            location: user.hostel.location,
-            city: user.city,
-            gender: user.hostel.gender,
-            property_type: "hostel",
-            price_min: 5000,
-            price_max: 12000,
-            description: `Welcome to ${user.hostel.name}. A comfortable and affordable stay in ${user.hostel.location}.`,
-            is_active: true,
-            verified_status: "verified",
-          }).select("id").single();
-
-          if (hostel) {
-            // Add rooms
-            await supabase.from("rooms").insert([
-              { hostel_id: hostel.id, sharing_type: "2-sharing", price_per_month: 7000, total_beds: 10, available_beds: 6 },
-              { hostel_id: hostel.id, sharing_type: "3-sharing", price_per_month: 5500, total_beds: 15, available_beds: 9 },
-              { hostel_id: hostel.id, sharing_type: "single", price_per_month: 12000, total_beds: 5, available_beds: 3 },
-            ]);
-
-            // Add facilities
-            await supabase.from("facilities").insert({
-              hostel_id: hostel.id,
-              wifi: true,
-              food: true,
-              ac: false,
-              laundry: true,
-              parking: true,
-              cctv: true,
-              power_backup: true,
-              geyser: true,
-              washing_machine: true,
-            });
-          }
-        }
+        await supabase.from("user_roles").insert({ user_id: userId, role: dbRole });
       }
     } catch (e) {
       results.push({ email: user.email, status: "error", error: String(e) });
