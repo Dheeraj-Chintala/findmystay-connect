@@ -119,32 +119,8 @@ Deno.serve(async (req) => {
         );
       }
 
-      // For email contacts, also trigger Supabase Auth OTP email
-      if (contactType === "email") {
-        const { error: authError } = await supabase.auth.signInWithOtp({
-          email: normalizedContact,
-          options: {
-            shouldCreateUser: true,
-            data: { full_name: full_name || "", role: role || "user" },
-          },
-        });
-
-        if (authError) {
-          await supabase
-            .from("otp_codes")
-            .delete()
-            .eq("contact", normalizedContact)
-            .eq("verified", false);
-
-          return new Response(
-            JSON.stringify({ error: authError.message || "Failed to send OTP email." }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-      }
-
-      // For phone contacts, in production you'd integrate SMS here
-      // For now, OTP is stored and test numbers use 123456
+      // In production, send OTP via email/SMS service here
+      // For test contacts, OTP is always 123456
 
       const destination = contactType === "email" ? "email" : "mobile number";
       console.log(`OTP generated for ${normalizedContact} (${contactType})`);
