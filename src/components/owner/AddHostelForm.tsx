@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Building2, MapPin, IndianRupee, Users, FileText, Image, Loader2, X, Plus, Upload } from "lucide-react";
+import { Building2, MapPin, IndianRupee, Users, FileText, Loader2, X, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import CategoryPhotoUpload, { validateCategoryImages } from "@/components/owner/CategoryPhotoUpload";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,7 +33,8 @@ const AddHostelForm = ({ onSuccess }: AddHostelFormProps) => {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [images, setImages] = useState<File[]>([]);
+  const [categoryImages, setCategoryImages] = useState<Record<string, File[]>>({});
+  const [photoErrors, setPhotoErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState({
     hostel_name: "",
     description: "",
@@ -60,15 +62,19 @@ const AddHostelForm = ({ onSuccess }: AddHostelFormProps) => {
     setFacilities(prev => prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f]);
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setImages(prev => [...prev, ...Array.from(e.target.files!)].slice(0, 10));
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+
+    // Validate photos
+    const imgErrors = validateCategoryImages(categoryImages);
+    setPhotoErrors(imgErrors);
+    if (Object.keys(imgErrors).length > 0) {
+      toast.error("Please upload all required property photos");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -111,24 +117,28 @@ const AddHostelForm = ({ onSuccess }: AddHostelFormProps) => {
         }
       }
 
-      // 4. Upload images
-      for (let i = 0; i < images.length; i++) {
-        const file = images[i];
-        const filePath = `${hostel.id}/${Date.now()}-${i}.${file.name.split('.').pop()}`;
-        const { error: uploadErr } = await supabase.storage
-          .from("hostel-images")
-          .upload(filePath, file);
-
-        if (!uploadErr) {
-          const { data: publicUrl } = supabase.storage
+      // 4. Upload images by category
+      let imgIndex = 0;
+      for (const [category, files] of Object.entries(categoryImages)) {
+        for (const file of files) {
+          const filePath = `${hostel.id}/${Date.now()}-${imgIndex}.${file.name.split('.').pop()}`;
+          const { error: uploadErr } = await supabase.storage
             .from("hostel-images")
-            .getPublicUrl(filePath);
+            .upload(filePath, file);
 
-          await supabase.from("hostel_images").insert({
-            hostel_id: hostel.id,
-            image_url: publicUrl.publicUrl,
-            display_order: i,
-          });
+          if (!uploadErr) {
+            const { data: publicUrl } = supabase.storage
+              .from("hostel-images")
+              .getPublicUrl(filePath);
+
+            await supabase.from("hostel_images").insert({
+              hostel_id: hostel.id,
+              image_url: publicUrl.publicUrl,
+              display_order: imgIndex,
+              image_category: category,
+            });
+          }
+          imgIndex++;
         }
       }
 
@@ -140,7 +150,8 @@ const AddHostelForm = ({ onSuccess }: AddHostelFormProps) => {
       setForm({ hostel_name: "", description: "", location: "", city: "", property_type: "hostel", gender: "co-ed", price_min: "", price_max: "", latitude: "", longitude: "" });
       setFacilities([]);
       setRooms([{ sharing_type: "single", price_per_month: "", total_beds: "1", available_beds: "1" }]);
-      setImages([]);
+      setCategoryImages({});
+      setPhotoErrors({});
     } catch (err: any) {
       toast.error(err.message || "Failed to add property");
     } finally {
@@ -285,26 +296,11 @@ const AddHostelForm = ({ onSuccess }: AddHostelFormProps) => {
           </div>
 
           {/* Photos */}
-          <div className="space-y-3">
-            <h3 className="font-heading font-semibold text-sm flex items-center gap-2"><Image className="w-4 h-4 text-primary" /> Photos (up to 10)</h3>
-            <div className="flex flex-wrap gap-2">
-              {images.map((img, i) => (
-                <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-border">
-                  <img src={URL.createObjectURL(img)} alt="" className="w-full h-full object-cover" />
-                  <button type="button" onClick={() => setImages(images.filter((_, idx) => idx !== i))} className="absolute top-0.5 right-0.5 w-5 h-5 bg-destructive rounded-full flex items-center justify-center">
-                    <X className="w-3 h-3 text-destructive-foreground" />
-                  </button>
-                </div>
-              ))}
-              {images.length < 10 && (
-                <label className="w-20 h-20 rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-colors">
-                  <Upload className="w-5 h-5 text-muted-foreground" />
-                  <span className="text-[10px] text-muted-foreground mt-1">Add</span>
-                  <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageChange} />
-                </label>
-              )}
-            </div>
-          </div>
+          <CategoryPhotoUpload
+            categoryImages={categoryImages}
+            onChange={imgs => { setCategoryImages(imgs); setPhotoErrors({}); }}
+            errors={photoErrors}
+          />
 
           <Button type="submit" variant="hero" size="lg" className="w-full" disabled={submitting}>
             {submitting ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Creating...</> : "Add Property"}

@@ -191,6 +191,7 @@ export type Database = {
           display_order: number | null
           hostel_id: string
           id: string
+          image_category: string
           image_url: string
           uploaded_at: string
           uploaded_by: string
@@ -199,6 +200,7 @@ export type Database = {
           display_order?: number | null
           hostel_id: string
           id?: string
+          image_category?: string
           image_url: string
           uploaded_at?: string
           uploaded_by?: string
@@ -207,6 +209,7 @@ export type Database = {
           display_order?: number | null
           hostel_id?: string
           id?: string
+          image_category?: string
           image_url?: string
           uploaded_at?: string
           uploaded_by?: string
