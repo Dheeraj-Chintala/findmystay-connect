@@ -108,24 +108,28 @@ const AddHostelForm = ({ onSuccess }: AddHostelFormProps) => {
         }
       }
 
-      // 4. Upload images
-      for (let i = 0; i < images.length; i++) {
-        const file = images[i];
-        const filePath = `${hostel.id}/${Date.now()}-${i}.${file.name.split('.').pop()}`;
-        const { error: uploadErr } = await supabase.storage
-          .from("hostel-images")
-          .upload(filePath, file);
-
-        if (!uploadErr) {
-          const { data: publicUrl } = supabase.storage
+      // 4. Upload images by category
+      let imgIndex = 0;
+      for (const [category, files] of Object.entries(categoryImages)) {
+        for (const file of files) {
+          const filePath = `${hostel.id}/${Date.now()}-${imgIndex}.${file.name.split('.').pop()}`;
+          const { error: uploadErr } = await supabase.storage
             .from("hostel-images")
-            .getPublicUrl(filePath);
+            .upload(filePath, file);
 
-          await supabase.from("hostel_images").insert({
-            hostel_id: hostel.id,
-            image_url: publicUrl.publicUrl,
-            display_order: i,
-          });
+          if (!uploadErr) {
+            const { data: publicUrl } = supabase.storage
+              .from("hostel-images")
+              .getPublicUrl(filePath);
+
+            await supabase.from("hostel_images").insert({
+              hostel_id: hostel.id,
+              image_url: publicUrl.publicUrl,
+              display_order: imgIndex,
+              image_category: category,
+            });
+          }
+          imgIndex++;
         }
       }
 
