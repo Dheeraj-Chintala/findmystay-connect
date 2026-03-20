@@ -287,26 +287,11 @@ const AddHostelForm = ({ onSuccess }: AddHostelFormProps) => {
           </div>
 
           {/* Photos */}
-          <div className="space-y-3">
-            <h3 className="font-heading font-semibold text-sm flex items-center gap-2"><Image className="w-4 h-4 text-primary" /> Photos (up to 10)</h3>
-            <div className="flex flex-wrap gap-2">
-              {images.map((img, i) => (
-                <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-border">
-                  <img src={URL.createObjectURL(img)} alt="" className="w-full h-full object-cover" />
-                  <button type="button" onClick={() => setImages(images.filter((_, idx) => idx !== i))} className="absolute top-0.5 right-0.5 w-5 h-5 bg-destructive rounded-full flex items-center justify-center">
-                    <X className="w-3 h-3 text-destructive-foreground" />
-                  </button>
-                </div>
-              ))}
-              {images.length < 10 && (
-                <label className="w-20 h-20 rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-colors">
-                  <Upload className="w-5 h-5 text-muted-foreground" />
-                  <span className="text-[10px] text-muted-foreground mt-1">Add</span>
-                  <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageChange} />
-                </label>
-              )}
-            </div>
-          </div>
+          <CategoryPhotoUpload
+            categoryImages={categoryImages}
+            onChange={imgs => { setCategoryImages(imgs); setPhotoErrors({}); }}
+            errors={photoErrors}
+          />
 
           <Button type="submit" variant="hero" size="lg" className="w-full" disabled={submitting}>
             {submitting ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Creating...</> : "Add Property"}
