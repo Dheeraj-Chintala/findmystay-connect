@@ -36,8 +36,11 @@ const TEST_CONTACTS = new Set([
   "ananya@worktest.com",
   "ramesh@hostelowner.com",
   "suresh@pgowner.com",
+  "owner@testapp.com",
+  "tenant@testapp.com",
   "+911234567890",
   "+919876543210",
+  "+919876543211",
 ]);
 
 Deno.serve(async (req) => {
