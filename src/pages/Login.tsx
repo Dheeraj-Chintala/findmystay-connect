@@ -245,7 +245,7 @@ const Login = () => {
                   </button>
                 </div>
 
-                <form onSubmit={handleSendOTP} className="space-y-4">
+                <form onSubmit={handleLogin} className="space-y-4">
                   {contactMethod === "email" ? (
                     <div className="space-y-1.5">
                       <Label className="text-sm font-medium" style={{ color: "#2C2C2C" }}>Email Address</Label>
