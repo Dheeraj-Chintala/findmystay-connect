@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Welcome from "./pages/Welcome";
 import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 import AdminLogin from "./pages/AdminLogin";
 import OwnerLogin from "./pages/OwnerLogin";
 import Listings from "./pages/Listings";
@@ -38,19 +39,19 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/welcome" element={<Welcome />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
             <Route path="/owner-login" element={<OwnerLogin />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="/listings" element={<Listings />} />
             <Route path="/listing/:id" element={<ListingDetail />} />
             <Route path="/booking/:id" element={<BookingRequest />} />
             <Route path="/listing/:id/reviews" element={<Reviews />} />
-            {/* Admin login - separate from public login */}
-            <Route path="/admin/login" element={<AdminLogin />} />
-            {/* Dashboard routes with nested sub-routes */}
+            {/* Dashboard routes */}
             <Route path="/owner/*" element={<OwnerDashboard />} />
             <Route path="/admin/*" element={<AdminDashboard />} />
             <Route path="/dashboard/*" element={<UserDashboard />} />
-            {/* Legacy routes redirect */}
+            {/* Legacy routes */}
             <Route path="/owner-dashboard" element={<OwnerDashboard />} />
             <Route path="/admin-dashboard" element={<AdminDashboard />} />
             <Route path="/verify-property" element={<VerificationSubmit />} />
@@ -58,7 +59,6 @@ const App = () => (
             <Route path="/self-verify-capture" element={<SelfVerifyCapture />} />
             <Route path="/owner-verification-pending" element={<OwnerVerificationPending />} />
             <Route path="/map" element={<MapView />} />
-            {/* Standalone laundry routes */}
             <Route path="/laundry" element={<LaundryHome />} />
             <Route path="/laundry/book-service" element={<LaundryBookService />} />
             <Route path="/laundry/orders" element={<LaundryBookService />} />
