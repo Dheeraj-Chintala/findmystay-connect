@@ -26,18 +26,24 @@ const Signup = () => {
   const [submitting, setSubmitting] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [resendCountdown, setResendCountdown] = useState(0);
+  const [registering, setRegistering] = useState(false);
   const verifyingRef = useRef(false);
   const navigate = useNavigate();
-  const { user, rolesLoaded } = useAuth();
+  const { user, hasRole, rolesLoaded } = useAuth();
 
   const contactValue = contactMethod === "email" ? email.trim().toLowerCase() : mobile.trim().replace(/[\s\-()]/g, "");
   const contactDisplay = contactMethod === "email" ? email : mobile;
 
   useEffect(() => {
+    // Don't redirect while we're still completing registration
+    if (registering) return;
     if (user && rolesLoaded) {
-      navigate("/dashboard");
+      if (hasRole("owner")) navigate("/owner");
+      else if (hasRole("owner_pending" as any)) navigate("/owner-verification-pending");
+      else if (hasRole("admin")) navigate("/admin");
+      else navigate("/dashboard");
     }
-  }, [user, rolesLoaded]);
+  }, [user, rolesLoaded, registering]);
 
   useEffect(() => {
     if (countdown > 0) {
