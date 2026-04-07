@@ -1,5 +1,5 @@
 import { useParams, Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Star, MapPin, BadgeCheck, Heart, Share2, Shield, Calendar, IndianRupee, Users, Wifi, Wind, UtensilsCrossed, Dumbbell, Car, Zap, Waves, Home, ChevronLeft, ChevronRight, X, Loader2 } from "lucide-react";
+import { ArrowLeft, Star, MapPin, BadgeCheck, Heart, Share2, Shield, Users, Wifi, Wind, UtensilsCrossed, Dumbbell, Car, Zap, Waves, Home, ChevronLeft, ChevronRight, X, Loader2 } from "lucide-react";
 import VerificationBadge from "@/components/VerificationBadge";
 import PropertyMediaGallery from "@/components/PropertyMediaGallery";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,6 @@ import { Separator } from "@/components/ui/separator";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { listings } from "@/data/mockListings";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -76,9 +75,7 @@ const ListingDetail = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
-  const mockListing = listings.find((l) => l.id === id);
 
-  // DB state
   const [dbHostel, setDbHostel] = useState<DbHostel | null>(null);
   const [dbRooms, setDbRooms] = useState<DbRoom[]>([]);
   const [dbAmenities, setDbAmenities] = useState<string[]>([]);
@@ -86,7 +83,7 @@ const ListingDetail = () => {
   const [dbPhotos, setDbPhotos] = useState<{ id: string; url: string; uploaded_by: string; type: "photo" }[]>([]);
   const [dbVideos, setDbVideos] = useState<{ id: string; url: string; uploaded_by: string; type: "video" }[]>([]);
   const [ownerName, setOwnerName] = useState("Property Owner");
-  const [loading, setLoading] = useState(!mockListing);
+  const [loading, setLoading] = useState(true);
 
   const [activeImage, setActiveImage] = useState(0);
   const [galleryOpen, setGalleryOpen] = useState(false);
@@ -96,9 +93,8 @@ const ListingDetail = () => {
   const bookingRef = useRef<HTMLDivElement>(null);
   const shouldOpenBooking = searchParams.get("book") === "true";
 
-  // Fetch DB hostel if not a mock listing
   useEffect(() => {
-    if (mockListing || !id) return;
+    if (!id) return;
     const fetchHostel = async () => {
       setLoading(true);
       const [hostelRes, roomsRes, facilitiesRes, imagesRes, videosRes] = await Promise.all([
@@ -139,7 +135,7 @@ const ListingDetail = () => {
       setLoading(false);
     };
     fetchHostel();
-  }, [id, mockListing]);
+  }, [id]);
 
   // Check saved status
   useEffect(() => {
@@ -180,27 +176,21 @@ const ListingDetail = () => {
     setSavingLike(false);
   };
 
-  // Normalize data from mock or DB
-  const isDbHostel = !mockListing && dbHostel;
-  const title = mockListing?.title || dbHostel?.hostel_name || "";
-  const location = mockListing?.location || (dbHostel ? `${dbHostel.location}, ${dbHostel.city}` : "");
-  const description = mockListing?.description || dbHostel?.description || "";
-  const price = mockListing?.price || dbHostel?.price_min || 0;
-  const rating = mockListing?.rating || dbHostel?.rating || 0;
-  const reviewCount = mockListing?.reviewCount || dbHostel?.review_count || 0;
-  const images = mockListing?.images || dbImages;
-  const amenities = mockListing?.amenities || dbAmenities;
-  const verified = mockListing?.verified || dbHostel?.verified_status === "verified";
-  const mediaVerBadge = mockListing?.mediaVerificationBadge || dbHostel?.media_verification_badge;
-  const propertyType = mockListing?.type || dbHostel?.property_type || "hostel";
-  const gender = mockListing?.gender || dbHostel?.gender || "co-ed";
-  const deposit = mockListing?.deposit || 0;
-  const occupancy = mockListing?.occupancy || "";
-  const availableFrom = mockListing?.availableFrom || "";
-  const ownerDisplay = mockListing?.ownerName || ownerName;
-  const highlights = mockListing?.highlights || [];
+  const title = dbHostel?.hostel_name || "";
+  const location = dbHostel ? `${dbHostel.location}, ${dbHostel.city}` : "";
+  const description = dbHostel?.description || "";
+  const price = dbHostel?.price_min || 0;
+  const rating = dbHostel?.rating || 0;
+  const reviewCount = dbHostel?.review_count || 0;
+  const images = dbImages;
+  const amenities = dbAmenities;
+  const verified = dbHostel?.verified_status === "verified";
+  const mediaVerBadge = dbHostel?.media_verification_badge;
+  const propertyType = dbHostel?.property_type || "hostel";
+  const gender = dbHostel?.gender || "co-ed";
+  const ownerDisplay = ownerName;
   const hostelId = id || "";
-  const isActive = mockListing ? true : (dbHostel?.is_active ?? false);
+  const isActive = dbHostel?.is_active ?? false;
 
   if (loading) {
     return (
@@ -213,7 +203,7 @@ const ListingDetail = () => {
     );
   }
 
-  if (!mockListing && !dbHostel) {
+  if (!dbHostel) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -350,17 +340,6 @@ const ListingDetail = () => {
                 </div>
               )}
 
-              {highlights.length > 0 && (
-                <div>
-                  <h2 className="font-heading font-semibold text-lg mb-3">Highlights</h2>
-                  <div className="flex flex-wrap gap-2">
-                    {highlights.map((h) => (
-                      <Badge key={h} variant="secondary" className="py-2 px-4 rounded-xl text-sm">{h}</Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {amenities.length > 0 && (
                 <>
                   <Separator />
@@ -466,89 +445,25 @@ const ListingDetail = () => {
             {/* Booking Sidebar */}
             <div>
               <div className="sticky top-28 space-y-4" ref={bookingRef}>
-                {/* Mock listing sidebar (legacy) */}
-                {mockListing && (
-                  <div className="bg-card rounded-2xl shadow-card-hover p-6 border border-border/50">
-                    <div className="flex items-baseline gap-1 mb-1">
-                      <span className="font-heading font-extrabold text-3xl text-primary">₹{price.toLocaleString()}</span>
-                      <span className="text-muted-foreground text-sm">/ month</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-6">Occupancy: {occupancy}</p>
+                <BookingPanel
+                  hostelId={hostelId}
+                  hostelName={title}
+                  priceMin={dbHostel!.price_min}
+                  priceMax={dbHostel!.price_max}
+                  rooms={dbRooms}
+                  isActive={isActive}
+                />
 
-                    <div className="space-y-3 mb-6">
-                      <div className="flex items-center justify-between text-sm p-3 rounded-xl bg-secondary/50">
-                        <span className="text-muted-foreground flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-primary" /> Available from
-                        </span>
-                        <span className="font-semibold">{availableFrom}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm p-3 rounded-xl bg-secondary/50">
-                        <span className="text-muted-foreground flex items-center gap-2">
-                          <IndianRupee className="w-4 h-4 text-primary" /> Security Deposit
-                        </span>
-                        <span className="font-semibold">₹{deposit.toLocaleString()}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-3">
-                      <Button
-                        onClick={handleSaveToggle}
-                        variant="outline"
-                        size="lg"
-                        className="flex-1 gap-2 rounded-xl border-primary/30 hover:bg-primary/5"
-                        disabled={savingLike}
-                      >
-                        <Heart className={`w-4 h-4 ${liked ? "fill-destructive text-destructive" : "text-primary"}`} />
-                        {liked ? "Saved" : "Save"}
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          if (!user) {
-                            toast.info("Please sign in or create an account to continue booking.");
-                            navigate(`/login?redirect=/listing/${id}&book=true`);
-                            return;
-                          }
-                          navigate(`/booking/${id}`);
-                        }}
-                        size="lg"
-                        className="flex-[2] gap-2 rounded-xl bg-[#8B5E3C] hover:bg-[#7A5235] text-white font-semibold shadow-md hover:-translate-y-0.5 transition-all"
-                      >
-                        <Calendar className="w-4 h-4" />
-                        Book Now
-                      </Button>
-                    </div>
-                    <div className="flex items-center justify-center gap-2 mt-4 text-xs text-muted-foreground">
-                      <Shield className="w-3.5 h-3.5 text-accent" />
-                      <span>Secure booking · No charges yet</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* DB hostel booking panel */}
-                {isDbHostel && (
-                  <BookingPanel
-                    hostelId={hostelId}
-                    hostelName={title}
-                    priceMin={dbHostel!.price_min}
-                    priceMax={dbHostel!.price_max}
-                    rooms={dbRooms}
-                    isActive={isActive}
-                  />
-                )}
-
-                {/* Save button for DB hostels */}
-                {isDbHostel && (
-                  <Button
-                    onClick={handleSaveToggle}
-                    variant="outline"
-                    size="lg"
-                    className="w-full gap-2 rounded-xl border-primary/30 hover:bg-primary/5"
-                    disabled={savingLike}
-                  >
-                    <Heart className={`w-4 h-4 ${liked ? "fill-destructive text-destructive" : "text-primary"}`} />
-                    {liked ? "Saved to Favorites" : "Save Hostel"}
-                  </Button>
-                )}
+                <Button
+                  onClick={handleSaveToggle}
+                  variant="outline"
+                  size="lg"
+                  className="w-full gap-2 rounded-xl border-primary/30 hover:bg-primary/5"
+                  disabled={savingLike}
+                >
+                  <Heart className={`w-4 h-4 ${liked ? "fill-destructive text-destructive" : "text-primary"}`} />
+                  {liked ? "Saved to Favorites" : "Save Hostel"}
+                </Button>
 
                 <div className="bg-card rounded-2xl p-5 border border-border/50">
                   <div className="flex items-center gap-3">

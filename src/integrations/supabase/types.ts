@@ -259,6 +259,48 @@ export type Database = {
           },
         ]
       }
+      hostel_members: {
+        Row: {
+          booking_id: string | null
+          hostel_id: string
+          id: string
+          joined_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          booking_id?: string | null
+          hostel_id: string
+          id?: string
+          joined_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          booking_id?: string | null
+          hostel_id?: string
+          id?: string
+          joined_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hostel_members_hostel_id_fkey"
+            columns: ["hostel_id"]
+            isOneToOne: false
+            referencedRelation: "hostels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hostel_members_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hostels: {
         Row: {
           city: string
@@ -997,6 +1039,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_owner_role: { Args: { p_user_id: string }; Returns: undefined }
       cleanup_expired_otps: { Args: never; Returns: undefined }
       has_role: {
         Args: {
@@ -1014,6 +1057,7 @@ export type Database = {
         | "rejected"
         | "cancelled"
         | "completed"
+        | "checked_in"
       laundry_order_status:
         | "order_placed"
         | "pickup_scheduled"
@@ -1166,6 +1210,7 @@ export const Constants = {
         "rejected",
         "cancelled",
         "completed",
+        "checked_in",
       ],
       laundry_order_status: [
         "order_placed",

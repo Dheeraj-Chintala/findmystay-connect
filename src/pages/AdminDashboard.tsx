@@ -13,7 +13,6 @@ import AdminMediaVerification from "@/components/AdminMediaVerification";
 import AdminHostelApprovals from "@/components/admin/AdminHostelApprovals";
 import AdminComplaints from "@/components/admin/AdminComplaints";
 import AdminActivityMonitor from "@/components/admin/AdminActivityMonitor";
-import AdminOwnerVerification from "@/components/admin/AdminOwnerVerification";
 import AdminLaundry from "@/components/admin/AdminLaundry";
 
 const sidebarGroups = [
@@ -27,7 +26,6 @@ const sidebarGroups = [
   {
     label: "Management",
     items: [
-      { title: "Owner Verification", url: "/admin/owner-verification", icon: BadgeCheck },
       { title: "Hostel Approvals", url: "/admin/approvals", icon: BadgeCheck },
       { title: "Users", url: "/admin/users", icon: Users },
       { title: "Fraud Alerts", url: "/admin/fraud", icon: AlertTriangle },
@@ -57,7 +55,6 @@ const AdminDashboard = () => {
         <Routes>
           <Route index element={<AdminAnalytics />} />
           <Route path="activity" element={<AdminActivityMonitor />} />
-          <Route path="owner-verification" element={<AdminOwnerVerification />} />
           <Route path="approvals" element={<AdminHostelApprovals />} />
           <Route path="users" element={<AdminUserManagement />} />
           <Route path="fraud" element={<AdminFraudAlerts />} />

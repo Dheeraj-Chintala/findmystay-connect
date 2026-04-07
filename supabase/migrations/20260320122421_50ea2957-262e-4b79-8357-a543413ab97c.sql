@@ -1,1 +1,0 @@
-ALTER TABLE public.hostel_images ADD COLUMN image_category text NOT NULL DEFAULT 'general';

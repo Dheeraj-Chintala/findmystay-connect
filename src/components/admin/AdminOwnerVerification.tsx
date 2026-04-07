@@ -26,11 +26,10 @@ const AdminOwnerVerification = () => {
   const fetchPendingOwners = async () => {
     setLoading(true);
     try {
-      // Get all users with owner_pending role
       const { data: roles, error: rolesError } = await supabase
         .from("user_roles")
         .select("user_id")
-        .eq("role", "owner_pending" as any);
+        .eq("role", "owner_pending");
 
       if (rolesError) {
         console.error("Error fetching roles:", rolesError);
@@ -46,7 +45,6 @@ const AdminOwnerVerification = () => {
 
       const userIds = roles.map((r) => r.user_id);
 
-      // Fetch profiles for these users
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("user_id, full_name, email, phone, hostel_name, property_location, created_at")
@@ -67,34 +65,20 @@ const AdminOwnerVerification = () => {
     fetchPendingOwners();
   }, []);
 
-  const handleApprove = async (userId: string) => {
+  const runVerificationAction = async (userId: string, action: "approve" | "reject") => {
     setActionLoading(userId);
     try {
-      // Delete owner_pending role
-      const { error: deleteError } = await supabase
-        .from("user_roles")
-        .delete()
-        .eq("user_id", userId)
-        .eq("role", "owner_pending" as any);
+      const { data, error } = await supabase.functions.invoke("owner-verification-action", {
+        body: { target_user_id: userId, action },
+      });
 
-      if (deleteError) {
-        toast.error("Failed to update role");
+      if (error || data?.error) {
+        toast.error(typeof data?.error === "string" ? data.error : "Failed to update role");
         setActionLoading(null);
         return;
       }
 
-      // Insert owner role
-      const { error: insertError } = await supabase
-        .from("user_roles")
-        .insert({ user_id: userId, role: "owner" as any });
-
-      if (insertError) {
-        toast.error("Failed to assign owner role");
-        setActionLoading(null);
-        return;
-      }
-
-      toast.success("Owner approved successfully!");
+      toast.success(action === "approve" ? "Owner approved successfully!" : "Owner request rejected.");
       fetchPendingOwners();
     } catch {
       toast.error("Something went wrong");
@@ -102,38 +86,8 @@ const AdminOwnerVerification = () => {
     setActionLoading(null);
   };
 
-  const handleReject = async (userId: string) => {
-    setActionLoading(userId);
-    try {
-      // Delete owner_pending role
-      const { error: deleteError } = await supabase
-        .from("user_roles")
-        .delete()
-        .eq("user_id", userId)
-        .eq("role", "owner_pending" as any);
-
-      if (deleteError) {
-        toast.error("Failed to update role");
-        setActionLoading(null);
-        return;
-      }
-
-      // Re-assign user role
-      const { error: insertError } = await supabase
-        .from("user_roles")
-        .insert({ user_id: userId, role: "user" as any });
-
-      if (insertError) {
-        console.error("Failed to re-assign user role:", insertError);
-      }
-
-      toast.success("Owner request rejected.");
-      fetchPendingOwners();
-    } catch {
-      toast.error("Something went wrong");
-    }
-    setActionLoading(null);
-  };
+  const handleApprove = (userId: string) => runVerificationAction(userId, "approve");
+  const handleReject = (userId: string) => runVerificationAction(userId, "reject");
 
   if (loading) {
     return (

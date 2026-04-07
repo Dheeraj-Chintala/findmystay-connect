@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
-import { BarChart3, TrendingUp, Users, IndianRupee, Calendar } from "lucide-react";
+import { BarChart3, TrendingUp, Users, IndianRupee, Calendar, Building2, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from "recharts";
-
-const COLORS = ["hsl(243, 75%, 59%)", "hsl(160, 84%, 39%)", "hsl(38, 92%, 50%)", "hsl(0, 84%, 60%)"];
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
+import { Badge } from "@/components/ui/badge";
 
 const OwnerAnalytics = () => {
   const { user } = useAuth();
@@ -14,19 +13,31 @@ const OwnerAnalytics = () => {
   const [revenueData, setRevenueData] = useState<any[]>([]);
   const [summary, setSummary] = useState({ totalBookings: 0, totalRooms: 0, occupiedBeds: 0, totalBeds: 0, estimatedRevenue: 0 });
   const [loading, setLoading] = useState(true);
+  const [hasNoHostels, setHasNoHostels] = useState(false);
+  const [pendingOnly, setPendingOnly] = useState(false);
 
   useEffect(() => {
     if (user) fetchAnalytics();
   }, [user]);
 
   const fetchAnalytics = async () => {
-    // Get owner's hostels
     const { data: hostels } = await supabase
       .from("hostels")
-      .select("id, hostel_name")
+      .select("id, hostel_name, verified_status")
       .eq("owner_id", user!.id);
 
-    if (!hostels?.length) { setLoading(false); return; }
+    if (!hostels?.length) {
+      setHasNoHostels(true);
+      setLoading(false);
+      return;
+    }
+
+    const verifiedHostels = hostels.filter(h => h.verified_status === "verified");
+    if (verifiedHostels.length === 0) {
+      setPendingOnly(true);
+      setLoading(false);
+      return;
+    }
     const hostelIds = hostels.map(h => h.id);
 
     // Bookings
@@ -91,6 +102,41 @@ const OwnerAnalytics = () => {
   };
 
   if (loading) return null;
+
+  if (hasNoHostels) {
+    return (
+      <div className="text-center py-20 bg-card rounded-2xl border border-border/50">
+        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+          <Building2 className="w-8 h-8 text-primary" />
+        </div>
+        <h3 className="font-heading font-bold text-xl mb-2">Welcome to Your Owner Dashboard</h3>
+        <p className="text-muted-foreground text-sm max-w-md mx-auto mb-2">
+          You haven't added any properties yet. Add your first hostel or PG to get started.
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Click <strong>"+ Add Property"</strong> in the top-right corner.
+        </p>
+      </div>
+    );
+  }
+
+  if (pendingOnly) {
+    return (
+      <div className="text-center py-20 bg-card rounded-2xl border border-border/50">
+        <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-4">
+          <Clock className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+        </div>
+        <h3 className="font-heading font-bold text-xl mb-2">Property Under Review</h3>
+        <p className="text-muted-foreground text-sm max-w-md mx-auto mb-4">
+          Your property is pending admin approval. Once approved, it will be visible to users
+          and you'll see analytics here.
+        </p>
+        <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+          <Clock className="w-3.5 h-3.5 mr-1" /> Pending Approval
+        </Badge>
+      </div>
+    );
+  }
 
   const occupancyRate = summary.totalBeds > 0 ? Math.round((summary.occupiedBeds / summary.totalBeds) * 100) : 0;
 

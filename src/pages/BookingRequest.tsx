@@ -7,18 +7,28 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { listings } from "@/data/mockListings";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+
+interface HostelInfo {
+  id: string;
+  hostel_name: string;
+  location: string;
+  city: string;
+  price_min: number;
+  price_max: number;
+  image_url: string | null;
+}
 
 const BookingRequest = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const listing = listings.find((l) => l.id === id);
+  const [hostel, setHostel] = useState<HostelInfo | null>(null);
+  const [loading, setLoading] = useState(true);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -30,10 +40,63 @@ const BookingRequest = () => {
     message: "",
   });
 
-  if (!listing) {
+  useEffect(() => {
+    if (!user) {
+      toast.info("Please sign in to submit a booking request.");
+      navigate(`/login?redirect=/booking/${id}`);
+      return;
+    }
+  }, [user, id, navigate]);
+
+  useEffect(() => {
+    if (!id) return;
+    const fetchHostel = async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("hostels")
+        .select(`
+          id, hostel_name, location, city, price_min, price_max,
+          hostel_images(image_url, display_order)
+        `)
+        .eq("id", id)
+        .maybeSingle();
+
+      if (data) {
+        const images = (data as any).hostel_images || [];
+        const sorted = [...images].sort((a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0));
+        setHostel({
+          id: data.id,
+          hostel_name: data.hostel_name,
+          location: data.location,
+          city: data.city,
+          price_min: data.price_min,
+          price_max: data.price_max,
+          image_url: sorted[0]?.image_url || null,
+        });
+      }
+      setLoading(false);
+    };
+    fetchHostel();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="pt-20 flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!hostel) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <p>Property not found</p>
+        <div className="text-center">
+          <p className="text-xl font-heading font-semibold mb-4">Property not found</p>
+          <Link to="/listings"><Button>Back to Listings</Button></Link>
+        </div>
       </div>
     );
   }
@@ -43,7 +106,7 @@ const BookingRequest = () => {
 
     if (!user) {
       toast.error("Please sign in to submit a booking request");
-      navigate("/login");
+      navigate(`/login?redirect=/booking/${id}`);
       return;
     }
 
@@ -51,7 +114,7 @@ const BookingRequest = () => {
     try {
       const { error } = await supabase.from("bookings").insert({
         user_id: user.id,
-        hostel_id: listing.id,
+        hostel_id: hostel.id,
         full_name: formData.fullName,
         phone: formData.phone,
         email: formData.email,
@@ -81,9 +144,9 @@ const BookingRequest = () => {
               <CheckCircle2 className="w-10 h-10 text-accent" />
             </div>
             <h1 className="font-heading font-bold text-2xl mb-3">Booking Request Sent!</h1>
-            <p className="text-muted-foreground mb-8">Your request for <strong>{listing.title}</strong> has been submitted. The owner will review and contact you within 24 hours.</p>
+            <p className="text-muted-foreground mb-8">Your request for <strong>{hostel.hostel_name}</strong> has been submitted. The owner will review and contact you within 24 hours.</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link to={`/listing/${listing.id}`}><Button variant="outline" className="rounded-xl">View Property</Button></Link>
+              <Link to={`/listing/${hostel.id}`}><Button variant="outline" className="rounded-xl">View Property</Button></Link>
               <Link to="/listings"><Button variant="hero" className="rounded-xl">Browse More</Button></Link>
             </div>
           </motion.div>
@@ -97,7 +160,7 @@ const BookingRequest = () => {
       <Navbar />
       <div className="pt-20 lg:pt-24">
         <div className="container mx-auto px-4 lg:px-8 py-8 max-w-4xl">
-          <Link to={`/listing/${listing.id}`} className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 text-sm">
+          <Link to={`/listing/${hostel.id}`} className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 text-sm">
             <ArrowLeft className="w-4 h-4" /> Back to property
           </Link>
 
@@ -176,24 +239,20 @@ const BookingRequest = () => {
 
             <div className="lg:col-span-2">
               <div className="sticky top-28 bg-card rounded-2xl border border-border/50 overflow-hidden shadow-card">
-                <img src={listing.image} alt={listing.title} className="w-full aspect-video object-cover" />
+                {hostel.image_url ? (
+                  <img src={hostel.image_url} alt={hostel.hostel_name} className="w-full aspect-video object-cover" />
+                ) : (
+                  <div className="w-full aspect-video bg-secondary flex items-center justify-center text-muted-foreground text-sm">No Image</div>
+                )}
                 <div className="p-5 space-y-4">
                   <div>
-                    <h3 className="font-heading font-semibold">{listing.title}</h3>
-                    <p className="text-muted-foreground text-sm">{listing.location}</p>
+                    <h3 className="font-heading font-semibold">{hostel.hostel_name}</h3>
+                    <p className="text-muted-foreground text-sm">{hostel.location}, {hostel.city}</p>
                   </div>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Monthly Rent</span>
-                      <span className="font-semibold">₹{listing.price.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Security Deposit</span>
-                      <span className="font-semibold">₹{listing.deposit.toLocaleString()}</span>
-                    </div>
-                    <div className="border-t border-border pt-2 flex justify-between">
-                      <span className="font-semibold">Total Move-in Cost</span>
-                      <span className="font-heading font-bold text-primary">₹{(listing.price + listing.deposit).toLocaleString()}</span>
+                      <span className="font-semibold">₹{hostel.price_min.toLocaleString()} - ₹{hostel.price_max.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>

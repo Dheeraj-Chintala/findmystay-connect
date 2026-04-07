@@ -1,8 +1,8 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-type AppRole = "admin" | "owner" | "user" | "owner_pending";
+type AppRole = "admin" | "owner" | "user";
 
 interface AuthContextType {
   user: User | null;
@@ -11,6 +11,7 @@ interface AuthContextType {
   rolesLoaded: boolean;
   roles: AppRole[];
   hasRole: (role: AppRole) => boolean;
+  refreshRoles: (userId?: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -21,6 +22,7 @@ const AuthContext = createContext<AuthContextType>({
   rolesLoaded: false,
   roles: [],
   hasRole: () => false,
+  refreshRoles: async (_userId?: string) => {},
   signOut: async () => {},
 });
 
@@ -44,16 +46,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setRolesLoaded(true);
   };
 
+  const refreshRoles = useCallback(async (userId?: string) => {
+    const uid = userId ?? user?.id;
+    if (!uid) return;
+    setRolesLoaded(false);
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", uid);
+    if (data) {
+      setRoles(data.map((r) => r.role as AppRole));
+    }
+    setRolesLoaded(true);
+  }, [user?.id]);
+
   useEffect(() => {
-    // Set up auth listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-      if (session?.user) {
-          // Reset rolesLoaded so consumers wait for fresh role data
+        if (session?.user) {
           setRolesLoaded(false);
-          // Use setTimeout to avoid Supabase deadlock
           setTimeout(() => fetchRoles(session.user.id), 0);
         } else {
           setRoles([]);
@@ -63,7 +76,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // THEN check existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -86,7 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, rolesLoaded, roles, hasRole, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, rolesLoaded, roles, hasRole, refreshRoles, signOut }}>
       {children}
     </AuthContext.Provider>
   );

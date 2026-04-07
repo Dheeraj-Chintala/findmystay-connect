@@ -9,7 +9,6 @@ import Welcome from "./pages/Welcome";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import AdminLogin from "./pages/AdminLogin";
-import OwnerLogin from "./pages/OwnerLogin";
 import Listings from "./pages/Listings";
 import ListingDetail from "./pages/ListingDetail";
 import BookingRequest from "./pages/BookingRequest";
@@ -21,7 +20,6 @@ import VerificationSubmit from "./pages/VerificationSubmit";
 import PRPhotoshootRequest from "./pages/PRPhotoshootRequest";
 import SelfVerifyCapture from "./pages/SelfVerifyCapture";
 import MapView from "./pages/MapView";
-import OwnerVerificationPending from "./pages/OwnerVerificationPending";
 import LaundryHome from "./pages/LaundryHome";
 import LaundryBookService from "./pages/LaundryBookService";
 import NotFound from "./pages/NotFound";
@@ -40,7 +38,6 @@ const App = () => (
             <Route path="/welcome" element={<Welcome />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-            <Route path="/owner-login" element={<OwnerLogin />} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="/listings" element={<Listings />} />
@@ -51,17 +48,12 @@ const App = () => (
             <Route path="/owner/*" element={<OwnerDashboard />} />
             <Route path="/admin/*" element={<AdminDashboard />} />
             <Route path="/dashboard/*" element={<UserDashboard />} />
-            {/* Role-based dashboard aliases */}
-            <Route path="/dashboard/user/*" element={<UserDashboard />} />
-            <Route path="/dashboard/owner/*" element={<OwnerDashboard />} />
-            <Route path="/dashboard/admin/*" element={<AdminDashboard />} />
             {/* Legacy routes */}
             <Route path="/owner-dashboard" element={<OwnerDashboard />} />
             <Route path="/admin-dashboard" element={<AdminDashboard />} />
             <Route path="/verify-property" element={<VerificationSubmit />} />
             <Route path="/pr-photoshoot-request" element={<PRPhotoshootRequest />} />
             <Route path="/self-verify-capture" element={<SelfVerifyCapture />} />
-            <Route path="/owner-verification-pending" element={<OwnerVerificationPending />} />
             <Route path="/map" element={<MapView />} />
             <Route path="/laundry" element={<LaundryHome />} />
             <Route path="/laundry/book-service" element={<LaundryBookService />} />

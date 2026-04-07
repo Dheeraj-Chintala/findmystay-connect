@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
-import { CheckCircle2, XCircle, Clock, Loader2, MessageSquare, User, Phone, Mail, Calendar } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, MessageSquare, Phone, Mail, Calendar, LogIn, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 
 interface Booking {
   id: string;
+  user_id: string;
   full_name: string | null;
   email: string | null;
   phone: string | null;
@@ -27,6 +29,7 @@ const statusStyles: Record<string, string> = {
   approved: "bg-accent/10 text-accent",
   rejected: "bg-destructive/10 text-destructive",
   cancelled: "bg-muted text-muted-foreground",
+  checked_in: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
   completed: "bg-primary/10 text-primary",
 };
 
@@ -41,7 +44,6 @@ const OwnerBookingManager = () => {
   }, [user]);
 
   const fetchBookings = async () => {
-    // Get owner's hostel IDs first
     const { data: hostels } = await supabase
       .from("hostels")
       .select("id")
@@ -60,20 +62,43 @@ const OwnerBookingManager = () => {
       .in("hostel_id", hostelIds)
       .order("created_at", { ascending: false });
 
-    if (data) setBookings(data as any);
+    if (data) setBookings(data as unknown as Booking[]);
     setLoading(false);
   };
 
-  const updateStatus = async (bookingId: string, status: "approved" | "rejected") => {
+  const updateStatus = async (bookingId: string, status: string) => {
     setProcessing(bookingId);
     try {
       const { error } = await supabase
         .from("bookings")
-        .update({ status: status as any })
+        .update({ status: status as Database["public"]["Enums"]["booking_status"] })
         .eq("id", bookingId);
 
       if (error) throw error;
-      toast.success(`Booking ${status}`);
+
+      if (status === "checked_in") {
+        const booking = bookings.find(b => b.id === bookingId);
+        if (booking) {
+          await supabase
+            .from("hostel_members")
+            .upsert(
+              {
+                hostel_id: booking.hostel_id,
+                user_id: booking.user_id,
+                booking_id: booking.id,
+                status: "active",
+              },
+              { onConflict: "hostel_id,user_id" }
+            );
+        }
+      }
+
+      toast.success(
+        status === "approved" ? "Booking approved" :
+        status === "rejected" ? "Booking rejected" :
+        status === "checked_in" ? "Tenant checked in & added as hostel member" :
+        `Booking ${status}`
+      );
       fetchBookings();
     } catch (err: any) {
       toast.error(err.message);
@@ -130,7 +155,7 @@ const OwnerBookingManager = () => {
                   </div>
                 </div>
                 <Badge className={statusStyles[booking.status] || statusStyles.pending}>
-                  {booking.status}
+                  {booking.status.replace("_", " ")}
                 </Badge>
               </div>
 
@@ -171,6 +196,35 @@ const OwnerBookingManager = () => {
                   >
                     <XCircle className="w-3.5 h-3.5" />
                     Reject
+                  </Button>
+                </div>
+              )}
+
+              {booking.status === "approved" && (
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    className="gap-1.5 rounded-xl flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={() => updateStatus(booking.id, "checked_in")}
+                    disabled={!!processing}
+                  >
+                    {processing === booking.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogIn className="w-3.5 h-3.5" />}
+                    Check In & Onboard
+                  </Button>
+                </div>
+              )}
+
+              {booking.status === "checked_in" && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 rounded-xl flex-1"
+                    onClick={() => updateStatus(booking.id, "completed")}
+                    disabled={!!processing}
+                  >
+                    {processing === booking.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                    Mark Completed
                   </Button>
                 </div>
               )}

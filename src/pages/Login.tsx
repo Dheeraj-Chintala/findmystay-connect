@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Building2, Mail, ArrowRight, ShieldCheck, Lock, Phone, Smartphone, Loader2, KeyRound } from "lucide-react";
+import { Building2, Mail, ArrowRight, ShieldCheck, Lock, Smartphone, Loader2, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,20 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import OTPInput from "@/components/auth/OTPInput";
+import { PhoneCountryInput } from "@/components/auth/PhoneCountryInput";
+import { DEFAULT_DIAL_CODE } from "@/lib/phoneCountries";
 import { cn } from "@/lib/utils";
+import {
+  composePhoneE164,
+  normalizeEmail,
+  isValidEmailInput,
+  sendPhoneOtp,
+  sendEmailOtp,
+  verifyPhoneOtp,
+  verifyEmailOtp,
+  checkAccountStatusOrSignOut,
+  isRecentlyCreatedUser,
+} from "@/lib/otpAuth";
 
 type AuthStep = "contact" | "otp";
 type ContactMethod = "email" | "mobile";
@@ -18,7 +31,8 @@ const Login = () => {
   const [step, setStep] = useState<AuthStep>("contact");
   const [contactMethod, setContactMethod] = useState<ContactMethod>("mobile");
   const [email, setEmail] = useState("");
-  const [mobile, setMobile] = useState("");
+  const [phoneDialCode, setPhoneDialCode] = useState(DEFAULT_DIAL_CODE);
+  const [phoneNational, setPhoneNational] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -30,8 +44,10 @@ const Login = () => {
   const redirectPath = searchParams.get("redirect");
   const { user, hasRole, rolesLoaded } = useAuth();
 
-  const contactValue = contactMethod === "email" ? email.trim().toLowerCase() : mobile.trim().replace(/[\s\-()]/g, "");
-  const contactDisplay = contactMethod === "email" ? email : mobile;
+  const phoneE164 = composePhoneE164(phoneDialCode, phoneNational);
+  const emailNormalized = normalizeEmail(email);
+  const contactDisplay =
+    contactMethod === "email" ? email : `${phoneDialCode} ${phoneNational}`.trim();
 
   // Show redirect message
   useEffect(() => {
@@ -47,7 +63,6 @@ const Login = () => {
         navigate(redirectPath + (bookParam ? `?book=${bookParam}` : ""));
       } else if (hasRole("admin")) navigate("/admin");
       else if (hasRole("owner")) navigate("/owner");
-      else if (hasRole("owner_pending" as any)) navigate("/owner-verification-pending");
       else navigate("/dashboard");
     }
   }, [user, rolesLoaded]);
@@ -96,34 +111,39 @@ const Login = () => {
 
     // Otherwise, proceed with OTP flow
     if (contactMethod === "email") {
-      if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-        toast.error("Please enter a valid email address."); return;
+      if (!isValidEmailInput(email)) {
+        toast.error("Please enter a valid email address.");
+        return;
       }
     } else {
-      const cleaned = mobile.trim().replace(/[\s\-()]/g, "");
-      if (!cleaned || !/^\+?\d{7,15}$/.test(cleaned)) {
-        toast.error("Please enter a valid mobile number (e.g. +919876543210)."); return;
+      if (!phoneE164) {
+        toast.error("Please enter a valid mobile number (country code and digits).");
+        return;
       }
     }
 
     setSubmitting(true);
     try {
-      const res = await supabase.functions.invoke("otp-auth", {
-        body: {
-          action: "send",
-          contact: contactValue,
-          contact_type: contactMethod === "mobile" ? "phone" : "email",
-          role: "user",
-          full_name: "",
-        },
-      });
-      if (res.error || res.data?.error) {
-        toast.error(res.data?.error || res.error?.message || "Failed to send OTP");
+      if (contactMethod === "mobile") {
+        const { error } = await sendPhoneOtp(phoneE164!, { shouldCreateUser: false });
+        if (error) {
+          toast.error(error.message || "Failed to send OTP");
+        } else {
+          toast.success("OTP sent!");
+          setStep("otp");
+          setCountdown(300);
+          setResendCountdown(60);
+        }
       } else {
-        toast.success(res.data?.message || "OTP sent!");
-        setStep("otp");
-        setCountdown(300);
-        setResendCountdown(60);
+        const { error } = await sendEmailOtp(emailNormalized, { shouldCreateUser: true });
+        if (error) {
+          toast.error(error.message || "Failed to send OTP");
+        } else {
+          toast.success("OTP sent! Check your email.");
+          setStep("otp");
+          setCountdown(300);
+          setResendCountdown(60);
+        }
       }
     } catch {
       toast.error("Something went wrong. Please try again.");
@@ -133,37 +153,49 @@ const Login = () => {
 
   const handleVerifyOTP = async () => {
     if (otp.length !== 6 || verifyingRef.current) return;
+    if (contactMethod === "mobile" && !phoneE164) {
+      toast.error("Invalid phone number.");
+      return;
+    }
+    if (contactMethod === "email" && !isValidEmailInput(email)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
     verifyingRef.current = true;
     setSubmitting(true);
 
     try {
-      const res = await supabase.functions.invoke("otp-auth", {
-        body: {
-          action: "verify",
-          contact: contactValue,
-          contact_type: contactMethod === "mobile" ? "phone" : "email",
-          otp,
-          role: "user",
-          full_name: "",
-        },
-      });
-
-      if (res.error || res.data?.error) {
-        toast.error(res.data?.error || "Verification failed");
-      } else if (res.data?.session) {
-        await supabase.auth.setSession({
-          access_token: res.data.session.access_token,
-          refresh_token: res.data.session.refresh_token,
-        });
-
-        if (res.data.isNewUser) {
-          toast.info("No account found. Please create an account first.");
-          navigate("/signup");
+      if (contactMethod === "mobile") {
+        const verifyResult = await verifyPhoneOtp(phoneE164!, otp);
+        if (verifyResult.error) {
+          toast.error(verifyResult.error.message || "Verification failed");
+        } else if (verifyResult.data.session && verifyResult.data.user) {
+          const statusCheck = await checkAccountStatusOrSignOut();
+          if (!statusCheck.ok) {
+            toast.error(statusCheck.message);
+          } else {
+            toast.success("Welcome back!");
+          }
         } else {
-          toast.success("Welcome back!");
+          toast.error("Failed to create session");
         }
       } else {
-        toast.error("Failed to create session");
+        const verifyResult = await verifyEmailOtp(emailNormalized, otp);
+        if (verifyResult.error) {
+          toast.error(verifyResult.error.message || "Verification failed");
+        } else if (verifyResult.data.session && verifyResult.data.user) {
+          const statusCheck = await checkAccountStatusOrSignOut();
+          if (!statusCheck.ok) {
+            toast.error(statusCheck.message);
+          } else if (isRecentlyCreatedUser(verifyResult.data.user)) {
+            toast.info("No account found. Please create an account first.");
+            navigate("/signup");
+          } else {
+            toast.success("Welcome back!");
+          }
+        } else {
+          toast.error("Failed to create session");
+        }
       }
     } catch {
       toast.error("Something went wrong. Please try again.");
@@ -176,18 +208,31 @@ const Login = () => {
     if (resendCountdown > 0) return;
     setSubmitting(true);
     try {
-      const res = await supabase.functions.invoke("otp-auth", {
-        body: {
-          action: "send",
-          contact: contactValue,
-          contact_type: contactMethod === "mobile" ? "phone" : "email",
-          role: "user",
-          full_name: "",
-        },
-      });
-      if (res.data?.error) toast.error(res.data.error);
-      else { toast.success("OTP resent!"); setCountdown(300); setResendCountdown(60); }
-    } catch { toast.error("Failed to resend OTP"); }
+      if (contactMethod === "mobile") {
+        if (!phoneE164) {
+          toast.error("Invalid phone number.");
+          setSubmitting(false);
+          return;
+        }
+        const { error } = await sendPhoneOtp(phoneE164, { shouldCreateUser: false });
+        if (error) toast.error(error.message);
+        else {
+          toast.success("OTP resent!");
+          setCountdown(300);
+          setResendCountdown(60);
+        }
+      } else {
+        const { error } = await sendEmailOtp(emailNormalized, { shouldCreateUser: true });
+        if (error) toast.error(error.message);
+        else {
+          toast.success("OTP resent! Check your email.");
+          setCountdown(300);
+          setResendCountdown(60);
+        }
+      }
+    } catch {
+      toast.error("Failed to resend OTP");
+    }
     setSubmitting(false);
   };
 
@@ -266,10 +311,14 @@ const Login = () => {
                   ) : (
                     <div className="space-y-1.5">
                       <Label className="text-sm font-medium" style={{ color: "#2C2C2C" }}>Mobile Number</Label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9B9B9B]" />
-                        <Input type="tel" placeholder="+91 9876543210" className="pl-10 h-11 rounded-xl border-[#E8E0D8]" required value={mobile} onChange={(e) => setMobile(e.target.value)} />
-                      </div>
+                      <PhoneCountryInput
+                        id="login-phone"
+                        dialCode={phoneDialCode}
+                        onDialCodeChange={setPhoneDialCode}
+                        nationalNumber={phoneNational}
+                        onNationalChange={setPhoneNational}
+                        disabled={submitting}
+                      />
                     </div>
                   )}
 

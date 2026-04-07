@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Building2, MapPin, IndianRupee, Users, FileText, Loader2, X, Plus } from "lucide-react";
+import { Building2, MapPin, LocateFixed, IndianRupee, Users, FileText, Loader2, X, Plus, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CategoryPhotoUpload, { validateCategoryImages } from "@/components/owner/CategoryPhotoUpload";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,7 @@ const AddHostelForm = ({ onSuccess }: AddHostelFormProps) => {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [fetchingLocation, setFetchingLocation] = useState(false);
   const [categoryImages, setCategoryImages] = useState<Record<string, File[]>>({});
   const [photoErrors, setPhotoErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState({
@@ -62,6 +63,29 @@ const AddHostelForm = ({ onSuccess }: AddHostelFormProps) => {
     setFacilities(prev => prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f]);
   };
 
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser");
+      return;
+    }
+    setFetchingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setForm(prev => ({
+          ...prev,
+          latitude: position.coords.latitude.toString(),
+          longitude: position.coords.longitude.toString(),
+        }));
+        toast.success("Location captured successfully");
+        setFetchingLocation(false);
+      },
+      () => {
+        toast.error("Unable to get location. Please allow location access.");
+        setFetchingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -225,15 +249,23 @@ const AddHostelForm = ({ onSuccess }: AddHostelFormProps) => {
                 <Input type="number" placeholder="15000" className="rounded-xl" value={form.price_max} onChange={e => setForm({ ...form, price_max: e.target.value })} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Latitude (optional)</Label>
-                <Input type="number" step="any" placeholder="12.9716" className="rounded-xl" value={form.latitude} onChange={e => setForm({ ...form, latitude: e.target.value })} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Longitude (optional)</Label>
-                <Input type="number" step="any" placeholder="77.5946" className="rounded-xl" value={form.longitude} onChange={e => setForm({ ...form, longitude: e.target.value })} />
-              </div>
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2 rounded-xl"
+                onClick={handleGetLocation}
+                disabled={fetchingLocation}
+              >
+                {fetchingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <LocateFixed className="w-4 h-4" />}
+                {fetchingLocation ? "Fetching..." : "Use Current Location"}
+              </Button>
+              {form.latitude && form.longitude && (
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Check className="w-3.5 h-3.5 text-accent" />
+                  {parseFloat(form.latitude).toFixed(4)}, {parseFloat(form.longitude).toFixed(4)}
+                </span>
+              )}
             </div>
           </div>
 

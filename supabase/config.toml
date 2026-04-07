@@ -1,13 +1,41 @@
-project_id = "tbpyzxlczopbddvtbbzr"
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
 
-[functions.fraud-check]
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "http://localhost:8080"
+additional_redirect_urls = ["https://localhost:8080"]
+jwt_expiry = 3600
+enable_signup = true
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+
+[auth.sms]
+enable_signup = true
+enable_confirmations = true
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[functions.complete-registration]
 verify_jwt = false
 
-[functions.otp-auth]
-verify_jwt = false
-
-[functions.admin-seed]
-verify_jwt = false
-
-[functions.seed-test-users]
+[functions.owner-verification-action]
 verify_jwt = false

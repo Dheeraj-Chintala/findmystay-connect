@@ -126,9 +126,18 @@ const OwnerPropertyManager = () => {
 
   if (hostels.length === 0) {
     return (
-      <div className="text-center py-12 bg-card rounded-2xl border border-border/50">
-        <Building2 className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-        <p className="text-muted-foreground text-sm">No properties yet. Add your first listing!</p>
+      <div className="text-center py-20 bg-card rounded-2xl border border-border/50">
+        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+          <Building2 className="w-8 h-8 text-primary" />
+        </div>
+        <h3 className="font-heading font-bold text-xl mb-2">Add Your First Property</h3>
+        <p className="text-muted-foreground text-sm max-w-md mx-auto mb-6">
+          Get started by adding your hostel or PG. Once submitted, our admin team will review and approve it.
+          After approval, your property will be visible to thousands of users.
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Click the <strong>"+ Add Property"</strong> button in the top-right corner to begin.
+        </p>
       </div>
     );
   }

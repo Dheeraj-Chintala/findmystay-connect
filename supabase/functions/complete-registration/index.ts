@@ -1,3 +1,4 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -6,18 +7,14 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders });
   }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const supabase = createClient(supabaseUrl, serviceRoleKey);
-
   try {
-    // Verify JWT from Authorization header
     const authHeader = req.headers.get("Authorization");
+
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: "Missing authorization header" }),
@@ -25,94 +22,122 @@ Deno.serve(async (req) => {
       );
     }
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // Client to identify user
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const {
+      data: { user },
+      error: userError,
+    } = await userClient.auth.getUser();
+
+    if (userError || !user) {
       return new Response(
-        JSON.stringify({ error: "Invalid or expired session" }),
+        JSON.stringify({ error: "Invalid or expired token" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const { selected_role, profile_data } = await req.json();
 
-    if (!selected_role || !["user", "owner_pending"].includes(selected_role)) {
+    if (!selected_role || !["user", "owner"].includes(selected_role)) {
       return new Response(
         JSON.stringify({ error: "Invalid role selection" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Update the user's role
-    if (selected_role === "owner_pending") {
-      // Remove default 'user' role assigned by trigger
-      await supabase
-        .from("user_roles")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("role", "user");
+    // Admin client
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-      // Insert owner_pending role
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .insert({ user_id: user.id, role: selected_role });
+    /* -------------------- */
+    /* UPDATE PROFILE DATA  */
+    /* -------------------- */
 
-      if (roleError) {
-        console.error("Role insert error:", roleError);
-        return new Response(
-          JSON.stringify({ error: "Failed to set role" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    }
-    // If selected_role === "user", keep the default role from trigger
+    const profileUpdate: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
 
-    // Update profile with provided data
-    if (profile_data && typeof profile_data === "object") {
-      const updateData: Record<string, unknown> = {
-        onboarding_complete: true,
-      };
+    if (profile_data?.full_name) profileUpdate.full_name = profile_data.full_name;
+    if (profile_data?.phone) profileUpdate.phone = profile_data.phone;
+    if (profile_data?.hostel_name) profileUpdate.hostel_name = profile_data.hostel_name;
+    if (profile_data?.property_location)
+      profileUpdate.property_location = profile_data.property_location;
 
-      if (profile_data.full_name) updateData.full_name = profile_data.full_name;
-      if (profile_data.occupation) updateData.occupation = profile_data.occupation;
-      if (profile_data.preferred_location) updateData.preferred_location = profile_data.preferred_location;
-      if (profile_data.budget_min !== undefined) updateData.budget_min = profile_data.budget_min;
-      if (profile_data.budget_max !== undefined) updateData.budget_max = profile_data.budget_max;
-      if (profile_data.hostel_name) updateData.hostel_name = profile_data.hostel_name;
-      if (profile_data.property_location) updateData.property_location = profile_data.property_location;
-      if (profile_data.phone) updateData.phone = profile_data.phone;
-
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update(updateData)
-        .eq("user_id", user.id);
-
-      if (profileError) {
-        console.error("Profile update error:", profileError);
-        return new Response(
-          JSON.stringify({ error: "Failed to update profile" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+    if (selected_role === "owner") {
+      profileUpdate.onboarding_complete = false;
     }
 
-    const redirectPath = selected_role === "owner_pending"
-      ? "/owner-verification-pending"
-      : "/dashboard";
+    const { error: profileError } = await adminClient
+      .from("profiles")
+      .update(profileUpdate)
+      .eq("user_id", user.id);
+
+    if (profileError) {
+      return new Response(
+        JSON.stringify({ error: "Failed to update profile" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    /* -------------------- */
+    /* ASSIGN USER ROLE     */
+    /* -------------------- */
+
+    const roleToInsert =
+      selected_role === "owner" ? "owner_pending" : "user";
+
+    const { error: roleError } = await adminClient
+      .from("user_roles")
+      .upsert(
+        {
+          user_id: user.id,
+          role: roleToInsert,
+        },
+        {
+          onConflict: "user_id,role",
+        }
+      );
+
+    if (roleError) {
+      return new Response(
+        JSON.stringify({ error: "Failed to assign role" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    /* -------------------- */
+    /* CREATE WALLET (USER) */
+    /* -------------------- */
+
+    if (selected_role === "user") {
+      await adminClient
+        .from("user_wallet")
+        .upsert(
+          {
+            user_id: user.id,
+            reward_points: 0,
+            cash_value: 0,
+          },
+          { onConflict: "user_id" }
+        );
+    }
 
     return new Response(
       JSON.stringify({
         success: true,
-        role: selected_role,
-        redirect: redirectPath,
-        message: selected_role === "owner_pending"
-          ? "Registration complete! Your owner account is pending verification."
-          : "Registration complete! Welcome to StayNest!",
+        role: roleToInsert,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error) {
-    console.error("Complete registration error:", error);
+  } catch (err) {
+    console.error(err);
+
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

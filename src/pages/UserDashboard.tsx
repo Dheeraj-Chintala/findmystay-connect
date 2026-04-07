@@ -1,7 +1,7 @@
-import { useNavigate, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import {
   Home, Search, Heart, Calendar, Star, User,
-  Sparkles, MapPin, ShirtIcon, Gift
+  Building2, ShirtIcon, Gift
 } from "lucide-react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
@@ -13,6 +13,7 @@ import UserBookings from "@/components/user/UserBookings";
 import UserReviews from "@/components/user/UserReviews";
 import UserProfile from "@/components/user/UserProfile";
 import UserLaundry from "@/components/user/UserLaundry";
+import UserHostelStatus from "@/components/user/UserHostelStatus";
 
 const sidebarGroups = [
   {
@@ -26,6 +27,7 @@ const sidebarGroups = [
   {
     label: "Activity",
     items: [
+      { title: "My Hostel", url: "/dashboard/my-hostel", icon: Building2 },
       { title: "Bookings", url: "/dashboard/bookings", icon: Calendar },
       { title: "Laundry", url: "/dashboard/laundry", icon: ShirtIcon },
       { title: "Refer & Earn", url: "/dashboard/referrals", icon: Gift },
@@ -53,6 +55,7 @@ const UserDashboard = () => {
           <Route index element={<UserHome />} />
           <Route path="search" element={<UserSearch />} />
           <Route path="saved" element={<UserSaved />} />
+          <Route path="my-hostel" element={<UserHostelStatus />} />
           <Route path="bookings" element={<UserBookings />} />
           <Route path="laundry" element={<UserLaundry />} />
           <Route path="referrals" element={<ReferAndEarn />} />
