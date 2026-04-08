@@ -1,18 +1,35 @@
 import { Link } from "react-router-dom";
-import { Star, Heart, MapPin, BadgeCheck, Wifi, Wind, UtensilsCrossed, ShieldCheck, Camera } from "lucide-react";
+import { Star, Heart, MapPin, BadgeCheck, Wifi, Wind, UtensilsCrossed, Car, Dumbbell, ShirtIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
-import type { Listing } from "@/data/mockListings";
 import VerificationBadge from "@/components/VerificationBadge";
+
+/** Card props mapped from Supabase hostel rows (featured / listings). */
+export interface FeaturedListing {
+  id: string;
+  title: string;
+  location: string;
+  image: string;
+  rating: number;
+  verified: boolean;
+  type: string;
+  gender: string;
+  price: number;
+  amenities: string[];
+  mediaVerificationBadge?: string | null;
+}
 
 const amenityIcons: Record<string, React.ReactNode> = {
   WiFi: <Wifi className="w-3.5 h-3.5" />,
   AC: <Wind className="w-3.5 h-3.5" />,
   Food: <UtensilsCrossed className="w-3.5 h-3.5" />,
+  Laundry: <ShirtIcon className="w-3.5 h-3.5" />,
+  Gym: <Dumbbell className="w-3.5 h-3.5" />,
+  Parking: <Car className="w-3.5 h-3.5" />,
 };
 
 interface PropertyCardProps {
-  listing: Listing;
+  listing: FeaturedListing;
   index?: number;
 }
 
@@ -66,7 +83,7 @@ const PropertyCard = ({ listing, index = 0 }: PropertyCardProps) => {
               <h3 className="font-heading font-semibold text-card-foreground line-clamp-1 text-[15px]">{listing.title}</h3>
               <div className="flex items-center gap-1 shrink-0 bg-secondary/80 px-2 py-0.5 rounded-md">
                 <Star className="w-3.5 h-3.5 fill-verified text-verified" />
-                <span className="text-xs font-bold">{listing.rating}</span>
+                <span className="text-xs font-bold">{listing.rating > 0 ? listing.rating : "New"}</span>
               </div>
             </div>
 

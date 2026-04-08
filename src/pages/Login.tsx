@@ -23,6 +23,7 @@ import {
   checkAccountStatusOrSignOut,
   isRecentlyCreatedUser,
 } from "@/lib/otpAuth";
+import { stashReferralCodeFromUrl, applyPendingReferralCode } from "@/lib/pendingReferral";
 
 type AuthStep = "contact" | "otp";
 type ContactMethod = "email" | "mobile";
@@ -39,6 +40,7 @@ const Login = () => {
   const [countdown, setCountdown] = useState(0);
   const [resendCountdown, setResendCountdown] = useState(0);
   const verifyingRef = useRef(false);
+  const postLoginNavRef = useRef(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectPath = searchParams.get("redirect");
@@ -57,15 +59,31 @@ const Login = () => {
   }, []);
 
   useEffect(() => {
-    if (user && rolesLoaded) {
+    stashReferralCodeFromUrl(searchParams.get("ref"), searchParams.get("coupon"));
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!user) postLoginNavRef.current = false;
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || !rolesLoaded || postLoginNavRef.current) return;
+    postLoginNavRef.current = true;
+    let cancelled = false;
+    (async () => {
+      await applyPendingReferralCode();
+      if (cancelled) return;
       if (redirectPath) {
         const bookParam = searchParams.get("book");
         navigate(redirectPath + (bookParam ? `?book=${bookParam}` : ""));
       } else if (hasRole("admin")) navigate("/admin");
       else if (hasRole("owner")) navigate("/owner");
       else navigate("/dashboard");
-    }
-  }, [user, rolesLoaded]);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, rolesLoaded, redirectPath, hasRole, navigate, searchParams]);
 
   useEffect(() => {
     if (countdown > 0) {

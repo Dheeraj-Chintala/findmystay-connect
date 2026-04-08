@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Building2, Mail, ArrowRight, ShieldCheck, Lock, Smartphone, User, Home, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ import {
   checkAccountStatusOrSignOut,
 } from "@/lib/otpAuth";
 import { getEdgeFunctionErrorMessage } from "@/lib/edgeFunctionErrors";
+import { stashReferralCodeFromUrl, applyPendingReferralCode } from "@/lib/pendingReferral";
 
 type AuthStep = "details" | "otp";
 type ContactMethod = "email" | "mobile";
@@ -44,6 +45,7 @@ const Signup = () => {
 
   const verifyingRef = useRef(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, rolesLoaded, refreshRoles } = useAuth();
 
   const phoneE164 = composePhoneE164(phoneDialCode, phoneNational);
@@ -98,6 +100,10 @@ const Signup = () => {
   };
 
   /* -------------------------------------------- */
+
+  useEffect(() => {
+    stashReferralCodeFromUrl(searchParams.get("ref"), searchParams.get("coupon"));
+  }, [searchParams]);
 
   useEffect(() => {
     if (step === "details" && user && rolesLoaded) {
@@ -251,6 +257,8 @@ const Signup = () => {
       }
 
       await refreshRoles(verifyResult.data.user.id);
+
+      await applyPendingReferralCode();
 
       if (selectedRole === "owner") {
         toast.success("Account created! Add your property.");

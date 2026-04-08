@@ -28,7 +28,12 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }>
   cancelled: { label: "Cancelled", color: "bg-destructive/10 text-destructive", icon: Package },
 };
 
-const UserLaundry = () => {
+interface UserLaundryProps {
+  /** Hostel for new orders (active membership with laundry). */
+  orderHostelId: string;
+}
+
+const UserLaundry = ({ orderHostelId }: UserLaundryProps) => {
   const { user } = useAuth();
   const [tab, setTab] = useState("book");
   const [services, setServices] = useState<any[]>([]);
@@ -113,6 +118,7 @@ const UserLaundry = () => {
         .from("laundry_orders")
         .insert({
           user_id: user!.id,
+          hostel_id: orderHostelId,
           total_amount: cartTotal,
           pickup_time: pickupDateTime.toISOString(),
           notes: notes || null,

@@ -3,28 +3,26 @@ import { ExternalLink, Zap, Award } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "@/components/ui/sonner";
 import { motion } from "framer-motion";
 
 interface ServiceItem {
   name: string;
   url: string;
   category: string;
-  points: number;
   emoji: string;
 }
 
 const services: ServiceItem[] = [
-  { name: "Swiggy", url: "https://www.swiggy.com", category: "Food", points: 5, emoji: "🍕" },
-  { name: "Zomato", url: "https://www.zomato.com", category: "Food", points: 5, emoji: "🍔" },
-  { name: "Rapido", url: "https://rapido.bike", category: "Transportation", points: 6, emoji: "🏍️" },
-  { name: "Ola", url: "https://www.olacabs.com", category: "Transportation", points: 6, emoji: "🚕" },
-  { name: "AbhiBus", url: "https://www.abhibus.com", category: "Travel", points: 8, emoji: "🚌" },
-  { name: "RedBus", url: "https://www.redbus.in", category: "Travel", points: 8, emoji: "🚎" },
-  { name: "BookMyShow", url: "https://in.bookmyshow.com", category: "Entertainment", points: 5, emoji: "🎬" },
-  { name: "Zepto", url: "https://www.zeptonow.com", category: "Groceries", points: 6, emoji: "🛒" },
-  { name: "Blinkit", url: "https://blinkit.com", category: "Groceries", points: 6, emoji: "⚡" },
-  { name: "Nykaa", url: "https://www.nykaa.com", category: "Cosmetics", points: 4, emoji: "💄" },
+  { name: "Swiggy", url: "https://www.swiggy.com", category: "Food", emoji: "🍕" },
+  { name: "Zomato", url: "https://www.zomato.com", category: "Food", emoji: "🍔" },
+  { name: "Rapido", url: "https://rapido.bike", category: "Transportation", emoji: "🏍️" },
+  { name: "Ola", url: "https://www.olacabs.com", category: "Transportation", emoji: "🚕" },
+  { name: "AbhiBus", url: "https://www.abhibus.com", category: "Travel", emoji: "🚌" },
+  { name: "RedBus", url: "https://www.redbus.in", category: "Travel", emoji: "🚎" },
+  { name: "BookMyShow", url: "https://in.bookmyshow.com", category: "Entertainment", emoji: "🎬" },
+  { name: "Zepto", url: "https://www.zeptonow.com", category: "Groceries", emoji: "🛒" },
+  { name: "Blinkit", url: "https://blinkit.com", category: "Groceries", emoji: "⚡" },
+  { name: "Nykaa", url: "https://www.nykaa.com", category: "Cosmetics", emoji: "💄" },
 ];
 
 const levels = [
@@ -36,84 +34,22 @@ const levels = [
 
 const LifestyleServices = () => {
   const { user } = useAuth();
-  const [activityScore, setActivityScore] = useState(0);
-  const [todayPoints, setTodayPoints] = useState(0);
+  const [rewardPoints, setRewardPoints] = useState(0);
 
   useEffect(() => {
-    if (user) fetchScore();
+    if (!user) return;
+    const load = async () => {
+      const { data } = await supabase.from("user_wallet").select("reward_points").eq("user_id", user.id).maybeSingle();
+      setRewardPoints(data?.reward_points ?? 0);
+    };
+    load();
   }, [user]);
 
-  const fetchScore = async () => {
-    // Total score
-    const { data } = await supabase
-      .from("lifestyle_clicks")
-      .select("points_awarded")
-      .eq("user_id", user!.id);
-
-    const total = (data || []).reduce((sum, r) => sum + r.points_awarded, 0);
-    setActivityScore(total);
-
-    // Today's points
-    const today = new Date().toISOString().split("T")[0];
-    const todayData = (data || []).filter((r: any) => r.created_at?.startsWith(today));
-    setTodayPoints(todayData.reduce((sum, r) => sum + r.points_awarded, 0));
-  };
-
-  const handleServiceClick = async (service: ServiceItem) => {
-    if (!user) {
-      window.open(service.url, "_blank");
-      return;
-    }
-
-    // Check daily limit (100 points max)
-    if (todayPoints >= 100) {
-      toast.info("Daily points limit reached (100/day). You can still use services!");
-      window.open(service.url, "_blank");
-      return;
-    }
-
-    const pointsToAward = Math.min(service.points, 100 - todayPoints);
-
-    // Log click & award points
-    await supabase.from("lifestyle_clicks").insert({
-      user_id: user.id,
-      service_name: service.name,
-      redirect_url: service.url,
-      points_awarded: pointsToAward,
-    });
-
-    // Update wallet
-    const { data: w } = await supabase
-      .from("user_wallet")
-      .select("*")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (w) {
-      const newPoints = w.reward_points + pointsToAward;
-      await supabase.from("user_wallet").update({
-        reward_points: newPoints,
-        cash_value: newPoints / 10,
-        updated_at: new Date().toISOString(),
-      }).eq("user_id", user.id);
-    } else {
-      await supabase.from("user_wallet").insert({
-        user_id: user.id,
-        reward_points: pointsToAward,
-        cash_value: pointsToAward / 10,
-      });
-    }
-
-    setActivityScore((s) => s + pointsToAward);
-    setTodayPoints((t) => t + pointsToAward);
-
-    if (pointsToAward > 0) {
-      toast.success(`+${pointsToAward} pts earned!`, { duration: 1500 });
-    }
-
+  const handleServiceClick = (service: ServiceItem) => {
     window.open(service.url, "_blank");
   };
 
+  const activityScore = rewardPoints;
   const currentLevel = levels.find((l) => activityScore >= l.min && activityScore < l.max) || levels[0];
   const nextLevel = levels[levels.indexOf(currentLevel) + 1];
   const progress = nextLevel
@@ -122,7 +58,6 @@ const LifestyleServices = () => {
 
   return (
     <div className="space-y-4">
-      {/* Activity Score Badge */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -131,7 +66,7 @@ const LifestyleServices = () => {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-accent" />
-            <h4 className="font-heading font-semibold text-sm">Activity Score</h4>
+            <h4 className="font-heading font-semibold text-sm">Reward points</h4>
           </div>
           <Badge className="bg-accent/10 text-accent border-accent/30 text-[10px] gap-1">
             <Award className="w-3 h-3" />
@@ -155,17 +90,21 @@ const LifestyleServices = () => {
             {nextLevel.min - activityScore} pts to {nextLevel.name}
           </p>
         )}
+        <p className="text-muted-foreground text-[10px] mt-2">
+          Points come from referrals and promotions (e.g. signup with a friend&apos;s code). External links do not add points.
+        </p>
       </motion.div>
 
-      {/* Service Grid */}
       <div>
         <h3 className="font-heading font-semibold text-lg flex items-center gap-2 mb-4">
           <ExternalLink className="w-4 h-4 text-primary" /> Lifestyle Services
         </h3>
+        <p className="text-muted-foreground text-xs mb-3">Quick links to partner sites — no points for clicks.</p>
         <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
           {services.map((service, i) => (
             <motion.button
               key={service.name}
+              type="button"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.04 }}
@@ -176,13 +115,9 @@ const LifestyleServices = () => {
             >
               <span className="text-2xl group-hover:scale-110 transition-transform">{service.emoji}</span>
               <span className="text-xs font-medium text-foreground truncate w-full text-center">{service.name}</span>
-              <Badge variant="secondary" className="text-[9px] px-1.5 py-0">+{service.points} pts</Badge>
             </motion.button>
           ))}
         </div>
-        <p className="text-muted-foreground text-[10px] mt-2 text-center">
-          Max 100 points/day from lifestyle services • Today: {todayPoints}/100
-        </p>
       </div>
     </div>
   );

@@ -47,6 +47,8 @@ const AddHostelForm = ({ onSuccess }: AddHostelFormProps) => {
     price_max: "",
     latitude: "",
     longitude: "",
+    contact_phone: "",
+    contact_email: "",
   });
   const [facilities, setFacilities] = useState<string[]>([]);
   const [rooms, setRooms] = useState([{ sharing_type: "single", price_per_month: "", total_beds: "1", available_beds: "1" }]);
@@ -117,6 +119,8 @@ const AddHostelForm = ({ onSuccess }: AddHostelFormProps) => {
           price_max: parseInt(form.price_max) || 0,
           latitude: form.latitude ? parseFloat(form.latitude) : null,
           longitude: form.longitude ? parseFloat(form.longitude) : null,
+          contact_phone: form.contact_phone.trim() || null,
+          contact_email: form.contact_email.trim() || null,
         })
         .select("id")
         .single();
@@ -171,7 +175,20 @@ const AddHostelForm = ({ onSuccess }: AddHostelFormProps) => {
       onSuccess();
 
       // Reset form
-      setForm({ hostel_name: "", description: "", location: "", city: "", property_type: "hostel", gender: "co-ed", price_min: "", price_max: "", latitude: "", longitude: "" });
+      setForm({
+        hostel_name: "",
+        description: "",
+        location: "",
+        city: "",
+        property_type: "hostel",
+        gender: "co-ed",
+        price_min: "",
+        price_max: "",
+        latitude: "",
+        longitude: "",
+        contact_phone: "",
+        contact_email: "",
+      });
       setFacilities([]);
       setRooms([{ sharing_type: "single", price_per_month: "", total_beds: "1", available_beds: "1" }]);
       setCategoryImages({});
@@ -216,6 +233,28 @@ const AddHostelForm = ({ onSuccess }: AddHostelFormProps) => {
             <div className="space-y-1.5">
               <Label className="text-xs">Description</Label>
               <Textarea placeholder="Describe your property..." className="rounded-xl min-h-[80px] resize-none" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Public contact phone</Label>
+                <Input
+                  type="tel"
+                  placeholder="Shown to guests on your listing"
+                  className="rounded-xl"
+                  value={form.contact_phone}
+                  onChange={(e) => setForm({ ...form, contact_phone: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Public contact email</Label>
+                <Input
+                  type="email"
+                  placeholder="Shown to guests on your listing"
+                  className="rounded-xl"
+                  value={form.contact_email}
+                  onChange={(e) => setForm({ ...form, contact_email: e.target.value })}
+                />
+              </div>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="space-y-1.5">

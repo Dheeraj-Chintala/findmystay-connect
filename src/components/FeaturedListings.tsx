@@ -1,12 +1,101 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Shield, Star, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Shield, Star, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import PropertyCard from "./PropertyCard";
-import { listings } from "@/data/mockListings";
+import PropertyCard, { FeaturedListing } from "./PropertyCard";
 import { motion } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
+import listingPlaceholder from "@/assets/listing-1.jpg";
+
+const FACILITY_LABELS: Record<string, string> = {
+  wifi: "WiFi",
+  ac: "AC",
+  food: "Food",
+  laundry: "Laundry",
+  gym: "Gym",
+  parking: "Parking",
+  pool: "Pool",
+  power_backup: "Power Backup",
+  cctv: "CCTV",
+  geyser: "Geyser",
+  washing_machine: "Washing Machine",
+  housekeeping: "Housekeeping",
+  common_kitchen: "Common Kitchen",
+  study_room: "Study Room",
+};
+
+function facilitiesToAmenities(f: Record<string, unknown> | null): string[] {
+  if (!f) return [];
+  const out: string[] = [];
+  Object.entries(f).forEach(([key, val]) => {
+    if (val === true && FACILITY_LABELS[key]) out.push(FACILITY_LABELS[key]);
+  });
+  return out;
+}
 
 const FeaturedListings = () => {
-  const featured = listings.filter((l) => l.verified).slice(0, 6);
+  const [featured, setFeatured] = useState<FeaturedListing[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      const { data: hostels, error } = await supabase
+        .from("hostels")
+        .select(
+          `
+          id,
+          hostel_name,
+          location,
+          city,
+          price_min,
+          rating,
+          review_count,
+          property_type,
+          gender,
+          verified_status,
+          media_verification_badge,
+          hostel_images(image_url, display_order),
+          facilities(wifi, ac, food, laundry, gym, parking, pool, power_backup, cctv, geyser, washing_machine, housekeeping, common_kitchen, study_room)
+        `,
+        )
+        .eq("is_active", true)
+        .eq("verified_status", "verified")
+        .order("rating", { ascending: false })
+        .limit(6);
+
+      if (error || !hostels?.length) {
+        setFeatured([]);
+        setLoading(false);
+        return;
+      }
+
+      const mapped: FeaturedListing[] = hostels.map((h: any) => {
+        const imgs = (h.hostel_images || []).sort(
+          (a: { display_order?: number }, b: { display_order?: number }) =>
+            (a.display_order ?? 0) - (b.display_order ?? 0),
+        );
+        const imageUrl = imgs[0]?.image_url || listingPlaceholder;
+        const fac = Array.isArray(h.facilities) ? h.facilities[0] : h.facilities;
+        return {
+          id: h.id,
+          title: h.hostel_name,
+          location: `${h.location}, ${h.city}`,
+          image: imageUrl,
+          rating: typeof h.rating === "number" ? h.rating : 0,
+          verified: h.verified_status === "verified",
+          type: h.property_type || "hostel",
+          gender: h.gender || "co-ed",
+          price: h.price_min ?? 0,
+          amenities: facilitiesToAmenities(fac || null),
+          mediaVerificationBadge: h.media_verification_badge,
+        };
+      });
+
+      setFeatured(mapped);
+      setLoading(false);
+    };
+    load();
+  }, []);
 
   return (
     <section className="py-16 lg:py-24">
@@ -29,11 +118,17 @@ const FeaturedListings = () => {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {featured.map((listing, i) => (
-            <PropertyCard key={listing.id} listing={listing} index={i} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="w-10 h-10 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {featured.map((listing, i) => (
+              <PropertyCard key={listing.id} listing={listing} index={i} />
+            ))}
+          </div>
+        )}
 
         <div className="sm:hidden mt-6 text-center">
           <Link to="/listings">

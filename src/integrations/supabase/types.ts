@@ -304,6 +304,8 @@ export type Database = {
       hostels: {
         Row: {
           city: string
+          contact_email: string | null
+          contact_phone: string | null
           created_at: string
           description: string | null
           gender: string
@@ -325,6 +327,8 @@ export type Database = {
         }
         Insert: {
           city: string
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
           description?: string | null
           gender?: string
@@ -346,6 +350,8 @@ export type Database = {
         }
         Update: {
           city?: string
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
           description?: string | null
           gender?: string

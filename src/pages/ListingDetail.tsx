@@ -8,7 +8,8 @@ import { Separator } from "@/components/ui/separator";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,12 +39,6 @@ const amenityLabel: Record<string, string> = {
   geyser: "Geyser", washing_machine: "Washing Machine",
 };
 
-const mockReviews = [
-  { name: "Arjun S.", rating: 5, date: "2 weeks ago", comment: "Excellent place! Clean rooms, great food, and very helpful staff.", avatar: "A" },
-  { name: "Priya M.", rating: 4, date: "1 month ago", comment: "Good location and amenities. WiFi could be better during peak hours.", avatar: "P" },
-  { name: "Rohit K.", rating: 5, date: "2 months ago", comment: "Best PG I've stayed in. The community vibe is amazing.", avatar: "R" },
-];
-
 interface DbHostel {
   id: string;
   hostel_name: string;
@@ -60,6 +55,16 @@ interface DbHostel {
   is_active: boolean;
   media_verification_badge: string | null;
   owner_id: string;
+  contact_phone: string | null;
+  contact_email: string | null;
+}
+
+interface ListingReviewRow {
+  id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  user_id: string;
 }
 
 interface DbRoom {
@@ -84,6 +89,8 @@ const ListingDetail = () => {
   const [dbVideos, setDbVideos] = useState<{ id: string; url: string; uploaded_by: string; type: "video" }[]>([]);
   const [ownerName, setOwnerName] = useState("Property Owner");
   const [loading, setLoading] = useState(true);
+  const [listingReviews, setListingReviews] = useState<ListingReviewRow[]>([]);
+  const [allReviewRatings, setAllReviewRatings] = useState<number[]>([]);
 
   const [activeImage, setActiveImage] = useState(0);
   const [galleryOpen, setGalleryOpen] = useState(false);
@@ -97,12 +104,17 @@ const ListingDetail = () => {
     if (!id) return;
     const fetchHostel = async () => {
       setLoading(true);
-      const [hostelRes, roomsRes, facilitiesRes, imagesRes, videosRes] = await Promise.all([
+      const [hostelRes, roomsRes, facilitiesRes, imagesRes, videosRes, reviewsRes] = await Promise.all([
         supabase.from("hostels").select("*").eq("id", id).maybeSingle(),
         supabase.from("rooms").select("*").eq("hostel_id", id),
         supabase.from("facilities").select("*").eq("hostel_id", id).maybeSingle(),
         supabase.from("hostel_images").select("*").eq("hostel_id", id).order("display_order"),
         supabase.from("hostel_videos").select("*").eq("hostel_id", id).order("display_order"),
+        supabase
+          .from("reviews")
+          .select("id, rating, comment, created_at, user_id")
+          .eq("hostel_id", id)
+          .order("created_at", { ascending: false }),
       ]);
 
       if (hostelRes.data) {
@@ -131,6 +143,10 @@ const ListingDetail = () => {
       setDbImages(imgs.map((i: any) => i.image_url));
       setDbPhotos(imgs.map((i: any) => ({ id: i.id, url: i.image_url, uploaded_by: i.uploaded_by || "owner", type: "photo" as const })));
       setDbVideos((videosRes.data || []).map((v: any) => ({ id: v.id, url: v.video_url, uploaded_by: v.uploaded_by || "owner", type: "video" as const })));
+
+      const revs = (reviewsRes.data || []) as ListingReviewRow[];
+      setListingReviews(revs.slice(0, 2));
+      setAllReviewRatings(revs.map((r) => r.rating));
 
       setLoading(false);
     };
@@ -175,6 +191,34 @@ const ListingDetail = () => {
     }
     setSavingLike(false);
   };
+
+  const handleContactOwner = () => {
+    const phone = dbHostel?.contact_phone?.trim();
+    const email = dbHostel?.contact_email?.trim();
+    if (phone) {
+      window.location.href = `tel:${phone.replace(/\s/g, "")}`;
+      return;
+    }
+    if (email) {
+      window.location.href = `mailto:${email}`;
+      return;
+    }
+    toast.info("Owner has not added contact details yet. You can request a stay below.");
+    bookingRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  const starHistogram = useMemo(() => {
+    const b = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    allReviewRatings.forEach((r) => {
+      const s = Math.min(5, Math.max(1, Math.round(r))) as keyof typeof b;
+      b[s]++;
+    });
+    const n = allReviewRatings.length || 1;
+    return ([5, 4, 3, 2, 1] as const).map((star) => ({
+      star,
+      pct: Math.round((b[star] / n) * 100),
+    }));
+  }, [allReviewRatings]);
 
   const title = dbHostel?.hostel_name || "";
   const location = dbHostel ? `${dbHostel.location}, ${dbHostel.city}` : "";
@@ -363,7 +407,7 @@ const ListingDetail = () => {
               )}
 
               {/* Room types for DB hostels */}
-              {isDbHostel && dbRooms.length > 0 && (
+              {dbRooms.length > 0 && (
                 <>
                   <Separator />
                   <div>
@@ -405,39 +449,46 @@ const ListingDetail = () => {
                     <p className="text-muted-foreground text-xs mt-1">{reviewCount} reviews</p>
                   </div>
                   <div className="flex-1 space-y-1.5">
-                    {[5, 4, 3, 2, 1].map((star) => {
-                      const pct = star === 5 ? 72 : star === 4 ? 20 : star === 3 ? 5 : 2;
-                      return (
-                        <div key={star} className="flex items-center gap-2 text-xs">
-                          <span className="w-3 text-muted-foreground">{star}</span>
-                          <div className="flex-1 h-2 bg-border rounded-full overflow-hidden">
-                            <div className="h-full bg-verified rounded-full" style={{ width: `${pct}%` }} />
-                          </div>
-                          <span className="w-8 text-muted-foreground text-right">{pct}%</span>
+                    {starHistogram.map(({ star, pct }) => (
+                      <div key={star} className="flex items-center gap-2 text-xs">
+                        <span className="w-3 text-muted-foreground">{star}</span>
+                        <div className="flex-1 h-2 bg-border rounded-full overflow-hidden">
+                          <div className="h-full bg-verified rounded-full" style={{ width: `${pct}%` }} />
                         </div>
-                      );
-                    })}
+                        <span className="w-8 text-muted-foreground text-right">{pct}%</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  {mockReviews.slice(0, 2).map((review) => (
-                    <div key={review.name} className="p-4 rounded-xl border border-border/50 bg-card">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-heading font-bold text-primary text-sm">{review.avatar}</div>
-                        <div className="flex-1">
-                          <p className="font-heading font-semibold text-sm">{review.name}</p>
-                          <p className="text-muted-foreground text-xs">{review.date}</p>
+                  {listingReviews.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No reviews yet.</p>
+                  ) : (
+                    listingReviews.map((review) => (
+                      <div key={review.id} className="p-4 rounded-xl border border-border/50 bg-card">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-heading font-bold text-primary text-sm">
+                            {review.user_id.slice(0, 2).toUpperCase()}
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-heading font-semibold text-sm">Verified resident</p>
+                            <p className="text-muted-foreground text-xs">
+                              {formatDistanceToNow(new Date(review.created_at), { addSuffix: true })}
+                            </p>
+                          </div>
+                          <div className="flex gap-0.5">
+                            {[1, 2, 3, 4, 5].map((s) => (
+                              <Star key={s} className={`w-3.5 h-3.5 ${s <= review.rating ? "fill-verified text-verified" : "text-border"}`} />
+                            ))}
+                          </div>
                         </div>
-                        <div className="flex gap-0.5">
-                          {[1, 2, 3, 4, 5].map((s) => (
-                            <Star key={s} className={`w-3.5 h-3.5 ${s <= review.rating ? "fill-verified text-verified" : "text-border"}`} />
-                          ))}
-                        </div>
+                        {review.comment && (
+                          <p className="text-sm text-muted-foreground leading-relaxed">{review.comment}</p>
+                        )}
                       </div>
-                      <p className="text-sm text-muted-foreground leading-relaxed">{review.comment}</p>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             </div>
@@ -475,7 +526,9 @@ const ListingDetail = () => {
                       <p className="text-xs text-muted-foreground">Property Owner · Responds within 2h</p>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" className="w-full mt-4 rounded-xl">Contact Owner</Button>
+                  <Button type="button" variant="outline" size="sm" className="w-full mt-4 rounded-xl" onClick={handleContactOwner}>
+                    Contact Owner
+                  </Button>
                 </div>
               </div>
             </div>

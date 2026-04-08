@@ -37,5 +37,8 @@ file_size_limit = "50MiB"
 [functions.complete-registration]
 verify_jwt = false
 
+[functions.apply-referral-code]
+verify_jwt = false
+
 [functions.owner-verification-action]
 verify_jwt = false
