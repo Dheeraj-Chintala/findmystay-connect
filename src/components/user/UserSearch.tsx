@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Search, MapPin, IndianRupee, Star, SlidersHorizontal, Building2 } from "lucide-react";
+import { Search, MapPin, IndianRupee, Star, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 const UserSearch = () => {
   const [query, setQuery] = useState("");
@@ -27,10 +28,14 @@ const UserSearch = () => {
 
     if (query) q = q.or(`hostel_name.ilike.%${query}%,location.ilike.%${query}%`);
     if (city) q = q.ilike("city", `%${city}%`);
-    if (priceMax) q = q.lte("price_min", parseInt(priceMax));
+    if (priceMax) {
+      const budget = parseInt(priceMax);
+      if (!isNaN(budget) && budget > 0) q = q.lte("price_min", budget);
+    }
     if (gender && gender !== "all") q = q.eq("gender", gender);
 
-    const { data } = await q.order("rating", { ascending: false }).limit(20);
+    const { data, error } = await q.order("rating", { ascending: false }).limit(20);
+    if (error) { toast.error(error.message); setLoading(false); return; }
     setResults(data || []);
     setLoading(false);
   };

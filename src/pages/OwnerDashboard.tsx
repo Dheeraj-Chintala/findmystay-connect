@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Routes, Route } from "react-router-dom";
 import {
   BarChart3, Building2, Users, Star,
-  Camera, Bed
+  Camera, Bed, ShirtIcon, WashingMachine
 } from "lucide-react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
@@ -12,6 +12,8 @@ import OwnerBookingManager from "@/components/OwnerBookingManager";
 import OwnerReviewManager from "@/components/owner/OwnerReviewManager";
 import OwnerMediaVerification from "@/components/owner/OwnerMediaVerification";
 import OwnerMembers from "@/components/owner/OwnerMembers";
+import OwnerLaundryRequests from "@/components/owner/OwnerLaundryRequests";
+import OwnerLaundryServices from "@/components/owner/OwnerLaundryServices";
 import AddHostelForm from "@/components/owner/AddHostelForm";
 
 const sidebarGroups = [
@@ -27,6 +29,8 @@ const sidebarGroups = [
       { title: "Properties", url: "/owner/properties", icon: Building2 },
       { title: "Bookings", url: "/owner/bookings", icon: Bed },
       { title: "Members", url: "/owner/members", icon: Users },
+      { title: "Laundry Services", url: "/owner/laundry-services", icon: WashingMachine },
+      { title: "Laundry Requests", url: "/owner/laundry", icon: ShirtIcon },
       { title: "Reviews", url: "/owner/reviews", icon: Star },
       { title: "Media Verification", url: "/owner/media", icon: Camera },
     ],
@@ -51,6 +55,8 @@ const OwnerDashboard = () => {
           <Route path="properties" element={<OwnerPropertyManager key={refreshKey} />} />
           <Route path="bookings" element={<OwnerBookingManager />} />
           <Route path="members" element={<OwnerMembers />} />
+          <Route path="laundry-services" element={<OwnerLaundryServices />} />
+          <Route path="laundry" element={<OwnerLaundryRequests />} />
           <Route path="reviews" element={<OwnerReviewManager />} />
           <Route path="media" element={<OwnerMediaVerification />} />
         </Routes>

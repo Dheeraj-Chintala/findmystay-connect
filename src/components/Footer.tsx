@@ -38,17 +38,17 @@ const Footer = () => {
           <div>
             <h4 className="font-heading font-semibold text-primary-foreground mb-4 text-sm">Support</h4>
             <div className="space-y-2.5">
-              <a href="#" className="block text-sm text-primary-foreground/40 hover:text-primary-foreground/70 transition-colors">Help Center</a>
-              <a href="#" className="block text-sm text-primary-foreground/40 hover:text-primary-foreground/70 transition-colors">Safety</a>
-              <a href="#" className="block text-sm text-primary-foreground/40 hover:text-primary-foreground/70 transition-colors">Terms</a>
+              <a href="mailto:support@staynest.app" className="block text-sm text-primary-foreground/40 hover:text-primary-foreground/70 transition-colors">Help Center</a>
+              <Link to="/listings" className="block text-sm text-primary-foreground/40 hover:text-primary-foreground/70 transition-colors">Safety</Link>
+              <Link to="/listings" className="block text-sm text-primary-foreground/40 hover:text-primary-foreground/70 transition-colors">Terms</Link>
             </div>
           </div>
         </div>
         <div className="border-t border-primary-foreground/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-primary-foreground/25 text-xs">© 2026 StayNest. All rights reserved.</p>
           <div className="flex gap-4">
-            <a href="#" className="text-primary-foreground/25 hover:text-primary-foreground/50 text-xs transition-colors">Privacy</a>
-            <a href="#" className="text-primary-foreground/25 hover:text-primary-foreground/50 text-xs transition-colors">Terms</a>
+            <Link to="/listings" className="text-primary-foreground/25 hover:text-primary-foreground/50 text-xs transition-colors">Privacy</Link>
+            <Link to="/listings" className="text-primary-foreground/25 hover:text-primary-foreground/50 text-xs transition-colors">Terms</Link>
           </div>
         </div>
       </div>

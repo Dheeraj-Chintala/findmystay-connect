@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Camera, ShieldCheck, Clock, CheckCircle2, Loader2, ExternalLink } from "lucide-react";
+import { Camera, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 
 const statusLabels: Record<string, { label: string; color: string }> = {
   pending: { label: "Pending", color: "bg-warning/10 text-warning" },
@@ -29,11 +30,12 @@ const OwnerMediaVerification = () => {
   }, [user]);
 
   const fetchRequests = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("media_verification_requests")
       .select("*, hostels(hostel_name, city)")
       .eq("owner_id", user!.id)
       .order("created_at", { ascending: false });
+    if (error) { toast.error(error.message); setLoading(false); return; }
     setRequests(data || []);
     setLoading(false);
   };
@@ -49,28 +51,18 @@ const OwnerMediaVerification = () => {
           </h2>
           <p className="text-muted-foreground text-sm">Track your verification requests</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={() => navigate("/pr-photoshoot-request")}>
-            <ShieldCheck className="w-3.5 h-3.5" /> Request Photoshoot
-          </Button>
-          <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={() => navigate("/self-verify-capture")}>
-            <Camera className="w-3.5 h-3.5" /> Self Verify
-          </Button>
-        </div>
+        <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={() => navigate("/self-verify-capture")}>
+          <Camera className="w-3.5 h-3.5" /> Self Verify
+        </Button>
       </div>
 
       {requests.length === 0 ? (
         <div className="text-center py-16 bg-card rounded-2xl border border-border/50">
           <Camera className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
           <p className="text-muted-foreground mb-4">No verification requests yet</p>
-          <div className="flex gap-2 justify-center">
-            <Button size="sm" className="rounded-xl gap-1.5" onClick={() => navigate("/pr-photoshoot-request")}>
-              <ShieldCheck className="w-3.5 h-3.5" /> Request Photoshoot
-            </Button>
-            <Button variant="outline" size="sm" className="rounded-xl gap-1.5" onClick={() => navigate("/self-verify-capture")}>
-              <Camera className="w-3.5 h-3.5" /> Self Verify
-            </Button>
-          </div>
+          <Button variant="outline" size="sm" className="rounded-xl gap-1.5" onClick={() => navigate("/self-verify-capture")}>
+            <Camera className="w-3.5 h-3.5" /> Self Verify
+          </Button>
         </div>
       ) : (
         <div className="space-y-3">

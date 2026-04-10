@@ -1,8 +1,12 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Star, Heart, MapPin, BadgeCheck, Wifi, Wind, UtensilsCrossed, Car, Dumbbell, ShirtIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import VerificationBadge from "@/components/VerificationBadge";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 /** Card props mapped from Supabase hostel rows (featured / listings). */
 export interface FeaturedListing {
@@ -34,6 +38,34 @@ interface PropertyCardProps {
 }
 
 const PropertyCard = ({ listing, index = 0 }: PropertyCardProps) => {
+  const { user } = useAuth();
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("saved_hostels")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("hostel_id", listing.id)
+      .maybeSingle()
+      .then(({ data }) => { if (data) setSaved(true); });
+  }, [user, listing.id]);
+
+  const toggleSave = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) { toast.error("Sign in to save listings"); return; }
+    if (saved) {
+      await supabase.from("saved_hostels").delete().eq("user_id", user.id).eq("hostel_id", listing.id);
+      setSaved(false);
+    } else {
+      const { error } = await supabase.from("saved_hostels").insert({ user_id: user.id, hostel_id: listing.id });
+      if (error) { toast.error("Failed to save"); return; }
+      setSaved(true);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -66,9 +98,9 @@ const PropertyCard = ({ listing, index = 0 }: PropertyCardProps) => {
             </div>
             <button
               className="absolute top-3 right-3 w-8 h-8 rounded-full bg-card/80 backdrop-blur-sm flex items-center justify-center hover:bg-card transition-all hover:scale-110"
-              onClick={(e) => { e.preventDefault(); }}
+              onClick={toggleSave}
             >
-              <Heart className="w-4 h-4 text-muted-foreground" />
+              <Heart className={`w-4 h-4 ${saved ? "fill-destructive text-destructive" : "text-muted-foreground"}`} />
             </button>
             <div className="absolute bottom-3 left-3">
               <Badge variant="secondary" className="bg-card/90 backdrop-blur-sm text-[11px] capitalize shadow-sm">

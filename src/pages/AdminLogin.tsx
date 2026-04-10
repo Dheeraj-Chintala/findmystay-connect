@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ShieldCheck, Lock, Mail, Building2, Loader2 } from "lucide-react";
+import { ShieldCheck, Lock, Mail, Building2, Loader2, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 const AdminLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const { user, hasRole, rolesLoaded } = useAuth();
@@ -112,13 +113,20 @@ const AdminLogin = () => {
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9B9B9B]" />
                   <Input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    className="pl-10 h-11 rounded-xl border-[#E8E0D8]"
+                    className="pl-10 pr-10 h-11 rounded-xl border-[#E8E0D8]"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9B9B9B] hover:text-[#6B6B6B] transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
 

@@ -1,16 +1,17 @@
 import { useState, useEffect } from "react";
-import { BarChart3, TrendingUp, Users, IndianRupee, Calendar, Building2, Clock } from "lucide-react";
+import { BarChart3, TrendingUp, Users, IndianRupee, Calendar, Building2, Clock, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 const OwnerAnalytics = () => {
   const { user } = useAuth();
-  const [bookingsByMonth, setBookingsByMonth] = useState<any[]>([]);
-  const [occupancyData, setOccupancyData] = useState<any[]>([]);
-  const [revenueData, setRevenueData] = useState<any[]>([]);
+  const [bookingsByMonth, setBookingsByMonth] = useState<{ month: string; bookings: number }[]>([]);
+  const [occupancyData, setOccupancyData] = useState<{ name: string; occupancy: number }[]>([]);
+  const [revenueData, setRevenueData] = useState<{ month: string; revenue: number }[]>([]);
   const [summary, setSummary] = useState({ totalBookings: 0, totalRooms: 0, occupiedBeds: 0, totalBeds: 0, estimatedRevenue: 0 });
   const [loading, setLoading] = useState(true);
   const [hasNoHostels, setHasNoHostels] = useState(false);
@@ -21,10 +22,12 @@ const OwnerAnalytics = () => {
   }, [user]);
 
   const fetchAnalytics = async () => {
-    const { data: hostels } = await supabase
+    const { data: hostels, error: hostelsError } = await supabase
       .from("hostels")
       .select("id, hostel_name, verified_status")
       .eq("owner_id", user!.id);
+
+    if (hostelsError) { toast.error(hostelsError.message); setLoading(false); return; }
 
     if (!hostels?.length) {
       setHasNoHostels(true);
@@ -41,16 +44,20 @@ const OwnerAnalytics = () => {
     const hostelIds = hostels.map(h => h.id);
 
     // Bookings
-    const { data: bookings } = await supabase
+    const { data: bookings, error: bookingsError } = await supabase
       .from("bookings")
       .select("created_at, status, hostel_id")
       .in("hostel_id", hostelIds);
 
+    if (bookingsError) { toast.error(bookingsError.message); setLoading(false); return; }
+
     // Rooms
-    const { data: rooms } = await supabase
+    const { data: rooms, error: roomsError } = await supabase
       .from("rooms")
       .select("hostel_id, total_beds, available_beds, price_per_month")
       .in("hostel_id", hostelIds);
+
+    if (roomsError) { toast.error(roomsError.message); setLoading(false); return; }
 
     // Process monthly bookings
     const monthMap: Record<string, number> = {};
@@ -84,10 +91,17 @@ const OwnerAnalytics = () => {
     const avgPrice = (rooms || []).length > 0 ? (rooms || []).reduce((s, r) => s + r.price_per_month, 0) / rooms!.length : 0;
     const estimatedRevenue = occupiedBeds * avgPrice;
 
-    // Simulated monthly revenue trend
-    setRevenueData(months.map((m, i) => ({
+    const monthlyRevenue: Record<string, number> = {};
+    months.forEach(m => { monthlyRevenue[m] = 0; });
+    (bookings || []).forEach(b => {
+      if (b.status === "approved" || b.status === "completed" || b.status === "checked_in") {
+        const m = months[new Date(b.created_at).getMonth()];
+        monthlyRevenue[m] += avgPrice;
+      }
+    });
+    setRevenueData(months.map(m => ({
       month: m,
-      revenue: Math.round(estimatedRevenue * (0.6 + Math.random() * 0.6)),
+      revenue: Math.round(monthlyRevenue[m]),
     })));
 
     setSummary({
@@ -101,7 +115,13 @@ const OwnerAnalytics = () => {
     setLoading(false);
   };
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (hasNoHostels) {
     return (

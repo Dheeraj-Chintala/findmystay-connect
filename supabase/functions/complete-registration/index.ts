@@ -116,7 +116,7 @@ serve(async (req) => {
     /* -------------------- */
 
     if (selected_role === "user") {
-      await adminClient
+      const { error: walletError } = await adminClient
         .from("user_wallet")
         .upsert(
           {
@@ -126,6 +126,14 @@ serve(async (req) => {
           },
           { onConflict: "user_id" }
         );
+
+      if (walletError) {
+        console.error("Wallet upsert failed:", walletError);
+        return new Response(
+          JSON.stringify({ error: "Failed to create wallet" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     return new Response(

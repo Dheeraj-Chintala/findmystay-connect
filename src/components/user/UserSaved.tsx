@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Heart, MapPin, Star, Trash2, Building2 } from "lucide-react";
+import { Heart, MapPin, Star, Trash2, Building2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,22 +16,28 @@ const UserSaved = () => {
   }, [user]);
 
   const fetchSaved = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("saved_hostels")
       .select("id, hostel_id, hostels(id, hostel_name, city, location, price_min, rating, review_count)")
       .eq("user_id", user!.id)
       .order("created_at", { ascending: false });
+    if (error) { toast.error(error.message); setLoading(false); return; }
     setSaved(data || []);
     setLoading(false);
   };
 
   const handleRemove = async (id: string) => {
-    await supabase.from("saved_hostels").delete().eq("id", id);
+    const { error } = await supabase.from("saved_hostels").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
     setSaved(saved.filter(s => s.id !== id));
     toast.success("Removed from saved");
   };
 
-  if (loading) return <div className="text-center py-8 text-muted-foreground text-sm">Loading...</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center py-8">
+      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+    </div>
+  );
 
   return (
     <div className="space-y-6">

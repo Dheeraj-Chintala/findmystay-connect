@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { User, Mail, Phone, Save, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { User, Mail, Phone, Save, Loader2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 const UserProfile = () => {
   const { user } = useAuth();
   const [profile, setProfile] = useState({ full_name: "", email: "", phone: "" });
+  const originalEmail = useRef("");
   const [preferences, setPreferences] = useState({ preferred_city: "", preferred_gender: "", budget_min: "", budget_max: "", preferred_sharing: "" });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -26,6 +27,7 @@ const UserProfile = () => {
     ]);
     if (profileRes.data) {
       setProfile({ full_name: profileRes.data.full_name || "", email: profileRes.data.email || "", phone: profileRes.data.phone || "" });
+      originalEmail.current = profileRes.data.email || "";
     }
     if (prefsRes.data) {
       setPreferences({
@@ -41,8 +43,26 @@ const UserProfile = () => {
 
   const handleSave = async () => {
     setSaving(true);
-    await supabase.from("profiles").update({ full_name: profile.full_name, phone: profile.phone }).eq("user_id", user!.id);
-    await supabase.from("user_preferences").upsert({
+
+    const emailChanged = profile.email !== originalEmail.current;
+    if (emailChanged && profile.email) {
+      const { error: authError } = await supabase.auth.updateUser({ email: profile.email });
+      if (authError) {
+        toast.error(authError.message);
+        setSaving(false);
+        return;
+      }
+      toast.info("A confirmation email has been sent to your new address. Please verify it to complete the change.");
+    }
+
+    const { error: profileError } = await supabase.from("profiles").update({
+      full_name: profile.full_name,
+      phone: profile.phone,
+      ...(emailChanged ? { email: profile.email } : {}),
+    }).eq("user_id", user!.id);
+    if (profileError) { toast.error(profileError.message); setSaving(false); return; }
+
+    const { error: prefsError } = await supabase.from("user_preferences").upsert({
       user_id: user!.id,
       preferred_city: preferences.preferred_city || null,
       preferred_gender: preferences.preferred_gender || null,
@@ -50,8 +70,11 @@ const UserProfile = () => {
       budget_max: preferences.budget_max ? parseInt(preferences.budget_max) : null,
       preferred_sharing: preferences.preferred_sharing || null,
     }, { onConflict: "user_id" });
+    if (prefsError) { toast.error(prefsError.message); setSaving(false); return; }
+
+    if (!emailChanged) toast.success("Profile updated!");
+    originalEmail.current = profile.email;
     setSaving(false);
-    toast.success("Profile updated!");
   };
 
   if (loading) return <div className="text-center py-8 text-muted-foreground text-sm">Loading...</div>;
@@ -75,7 +98,17 @@ const UserProfile = () => {
           </div>
           <div className="space-y-2">
             <Label className="text-xs">Email</Label>
-            <Input value={profile.email} disabled className="rounded-xl bg-secondary/50" />
+            <Input
+              value={profile.email}
+              onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+              className="rounded-xl"
+              type="email"
+            />
+            {profile.email !== originalEmail.current && (
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                <Info className="w-3 h-3" /> A confirmation email will be sent to verify your new address.
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label className="text-xs">Phone</Label>

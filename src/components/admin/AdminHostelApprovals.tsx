@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 
@@ -27,8 +26,9 @@ interface PendingHostel {
   facilities: { wifi: boolean; ac: boolean; food: boolean; laundry: boolean; gym: boolean; parking: boolean } | null;
 }
 
+type PendingHostelQueryRow = Omit<PendingHostel, "profiles">;
+
 const AdminHostelApprovals = () => {
-  const { user } = useAuth();
   const [hostels, setHostels] = useState<PendingHostel[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
@@ -39,7 +39,7 @@ const AdminHostelApprovals = () => {
   }, []);
 
   const fetchPending = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("hostels")
       .select(`
         id, hostel_name, location, city, price_min, price_max, property_type, gender,
@@ -49,18 +49,20 @@ const AdminHostelApprovals = () => {
       `)
       .in("verified_status", ["pending", "under_review"])
       .order("created_at", { ascending: false });
+
+    if (error) { toast.error(error.message); setLoading(false); return; }
     
     if (data) {
-      // Fetch owner profiles separately
-      const ownerIds = [...new Set(data.map((h: any) => h.owner_id))];
-      const { data: profiles } = await supabase
+      const ownerIds = [...new Set((data as PendingHostelQueryRow[]).map((h) => h.owner_id))];
+      const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("user_id, full_name, email")
         .in("user_id", ownerIds);
+      if (profilesError) { toast.error(profilesError.message); setLoading(false); return; }
       
       const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
       
-      setHostels(data.map((h: any) => ({
+      setHostels((data as PendingHostelQueryRow[]).map((h) => ({
         ...h,
         profiles: profileMap.get(h.owner_id) || null,
       })));
@@ -73,13 +75,13 @@ const AdminHostelApprovals = () => {
     try {
       const { error } = await supabase
         .from("hostels")
-        .update({ verified_status: "verified" as any, is_active: true })
+        .update({ verified_status: "verified", is_active: true })
         .eq("id", hostel.id);
       if (error) throw error;
 
       // Grant owner role if not already
       await supabase.from("user_roles").upsert(
-        { user_id: hostel.owner_id, role: "owner" as any },
+        { user_id: hostel.owner_id, role: "owner" },
         { onConflict: "user_id,role" }
       );
 
@@ -100,7 +102,7 @@ const AdminHostelApprovals = () => {
     try {
       const { error } = await supabase
         .from("hostels")
-        .update({ verified_status: "rejected" as any })
+        .update({ verified_status: "rejected", admin_notes: adminNotes[hostel.id].trim() })
         .eq("id", hostel.id);
       if (error) throw error;
       toast.success(`${hostel.hostel_name} rejected.`);

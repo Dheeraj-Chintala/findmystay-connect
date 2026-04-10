@@ -112,7 +112,7 @@ serve(async (req) => {
       const { data: w } = await admin.from("user_wallet").select("reward_points").eq("user_id", uid).maybeSingle();
       const next = (w?.reward_points ?? 0) + pts;
       if (w) {
-        await admin
+        const { error: updateErr } = await admin
           .from("user_wallet")
           .update({
             reward_points: next,
@@ -120,12 +120,20 @@ serve(async (req) => {
             updated_at: new Date().toISOString(),
           })
           .eq("user_id", uid);
+        if (updateErr) {
+          console.error("Failed to update wallet for", uid, updateErr);
+          throw new Error(`Wallet update failed: ${updateErr.message}`);
+        }
       } else {
-        await admin.from("user_wallet").insert({
+        const { error: insertErr } = await admin.from("user_wallet").insert({
           user_id: uid,
           reward_points: pts,
           cash_value: pts / 10,
         });
+        if (insertErr) {
+          console.error("Failed to insert wallet for", uid, insertErr);
+          throw new Error(`Wallet insert failed: ${insertErr.message}`);
+        }
       }
     }
 

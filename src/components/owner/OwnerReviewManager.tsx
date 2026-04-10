@@ -60,10 +60,19 @@ const OwnerReviewManager = () => {
   };
 
   const handleReply = async (reviewId: string) => {
-    // For now, show toast since reply system would need a separate table
+    const text = replyText[reviewId]?.trim();
+    if (!text) return;
     setReplying(reviewId);
-    await new Promise(r => setTimeout(r, 500));
-    toast.success("Reply sent to the reviewer!");
+    const { error } = await supabase
+      .from("reviews")
+      .update({ owner_reply: text, owner_reply_at: new Date().toISOString() })
+      .eq("id", reviewId);
+    if (error) {
+      toast.error(error.message || "Failed to save reply");
+    } else {
+      toast.success("Reply saved!");
+      fetchReviews();
+    }
     setReplyText(prev => ({ ...prev, [reviewId]: "" }));
     setReplying(null);
   };

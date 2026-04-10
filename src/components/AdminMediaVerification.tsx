@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Camera, ShieldCheck, Clock, CheckCircle2, XCircle, Loader2, Eye, UserCheck, Calendar, ExternalLink } from "lucide-react";
+import { Camera, CheckCircle2, XCircle, Loader2, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
@@ -39,7 +38,6 @@ const statusColors: Record<string, string> = {
 };
 
 const AdminMediaVerification = () => {
-  const { user } = useAuth();
   const [requests, setRequests] = useState<MediaRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);

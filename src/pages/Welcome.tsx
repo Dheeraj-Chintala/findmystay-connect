@@ -2,10 +2,10 @@ import { Link } from "react-router-dom";
 import { Building2, ArrowRight, Shield, Star, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import heroBg from "@/assets/hero-bg.jpg";
-import listing1 from "@/assets/listing-1.jpg";
-import listing3 from "@/assets/listing-3.jpg";
-import listing5 from "@/assets/listing-5.jpg";
+const heroBg = "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1600&q=80";
+const listing1 = "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&q=80";
+const listing3 = "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80";
+const listing5 = "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=80";
 
 const Welcome = () => {
   return (

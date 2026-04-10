@@ -2,7 +2,11 @@ import { useState, useEffect } from "react";
 import { Users, Loader2, Phone, Mail, Calendar, UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -24,6 +28,8 @@ const OwnerMembers = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<Member | null>(null);
+  const [confirmText, setConfirmText] = useState("");
 
   useEffect(() => {
     if (user) fetchMembers();
@@ -96,7 +102,13 @@ const OwnerMembers = () => {
       toast.error(err.message);
     }
     setProcessing(null);
+    setRemoveTarget(null);
+    setConfirmText("");
   };
+
+  const expectedConfirmText = removeTarget
+    ? `remove ${removeTarget.full_name}`.toLowerCase()
+    : "";
 
   if (loading) {
     return (
@@ -135,7 +147,7 @@ const OwnerMembers = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
+                <TableHead>Member</TableHead>
                 <TableHead>Contact</TableHead>
                 <TableHead>Hostel</TableHead>
                 <TableHead>Joined</TableHead>
@@ -146,11 +158,19 @@ const OwnerMembers = () => {
             <TableBody>
               {activeMembers.map((member) => (
                 <TableRow key={member.id}>
-                  <TableCell className="font-medium">{member.full_name}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center font-heading font-bold text-primary text-xs shrink-0">
+                        {member.full_name[0]?.toUpperCase() || "?"}
+                      </div>
+                      <span className="font-medium">{member.full_name}</span>
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <div className="space-y-1 text-xs text-muted-foreground">
                       {member.email && <div className="flex items-center gap-1"><Mail className="w-3 h-3" />{member.email}</div>}
                       {member.phone && <div className="flex items-center gap-1"><Phone className="w-3 h-3" />{member.phone}</div>}
+                      {!member.email && !member.phone && <span className="italic">No contact info</span>}
                     </div>
                   </TableCell>
                   <TableCell className="text-sm">{member.hostel_name}</TableCell>
@@ -169,7 +189,7 @@ const OwnerMembers = () => {
                       size="sm"
                       className="gap-1 text-destructive hover:text-destructive"
                       disabled={processing === member.id}
-                      onClick={() => handleRemove(member.id)}
+                      onClick={() => { setRemoveTarget(member); setConfirmText(""); }}
                     >
                       {processing === member.id ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -183,7 +203,14 @@ const OwnerMembers = () => {
               ))}
               {inactiveMembers.map((member) => (
                 <TableRow key={member.id} className="opacity-50">
-                  <TableCell className="font-medium">{member.full_name}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center font-heading font-bold text-muted-foreground text-xs shrink-0">
+                        {member.full_name[0]?.toUpperCase() || "?"}
+                      </div>
+                      <span className="font-medium">{member.full_name}</span>
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <div className="space-y-1 text-xs text-muted-foreground">
                       {member.email && <div className="flex items-center gap-1"><Mail className="w-3 h-3" />{member.email}</div>}
@@ -203,6 +230,41 @@ const OwnerMembers = () => {
           </Table>
         </div>
       )}
+
+      <Dialog open={!!removeTarget} onOpenChange={(open) => { if (!open) { setRemoveTarget(null); setConfirmText(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove Member</DialogTitle>
+            <DialogDescription>
+              This will remove <strong>{removeTarget?.full_name}</strong> from <strong>{removeTarget?.hostel_name}</strong>. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              To confirm, type <strong className="text-foreground">remove {removeTarget?.full_name?.toLowerCase()}</strong> below:
+            </p>
+            <Input
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder={`remove ${removeTarget?.full_name?.toLowerCase() || ""}`}
+              className="rounded-xl"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setRemoveTarget(null); setConfirmText(""); }}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={confirmText.toLowerCase() !== expectedConfirmText || processing === removeTarget?.id}
+              onClick={() => removeTarget && handleRemove(removeTarget.id)}
+            >
+              {processing === removeTarget?.id ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <UserX className="w-4 h-4 mr-1" />}
+              Remove Member
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

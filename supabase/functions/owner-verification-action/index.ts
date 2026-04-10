@@ -91,10 +91,14 @@ serve(async (req) => {
         );
       }
 
-      await adminClient
+      const { error: approveProfileErr } = await adminClient
         .from("profiles")
         .update({ onboarding_complete: true, updated_at: new Date().toISOString() })
         .eq("user_id", target_user_id);
+
+      if (approveProfileErr) {
+        console.error("Profile update after approve failed:", approveProfileErr);
+      }
 
       return new Response(
         JSON.stringify({ success: true, action: "approved" }),
@@ -116,10 +120,14 @@ serve(async (req) => {
         );
       }
 
-      await adminClient
+      const { error: rejectProfileErr } = await adminClient
         .from("profiles")
         .update({ account_status: "rejected", updated_at: new Date().toISOString() })
         .eq("user_id", target_user_id);
+
+      if (rejectProfileErr) {
+        console.error("Profile update after reject failed:", rejectProfileErr);
+      }
 
       return new Response(
         JSON.stringify({ success: true, action: "rejected" }),

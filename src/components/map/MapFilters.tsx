@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { Search, X, SlidersHorizontal, ChevronDown } from "lucide-react";
+import { Search, X, SlidersHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { motion, AnimatePresence } from "framer-motion";

@@ -3,6 +3,7 @@ import { BarChart3, TrendingUp, MapPin, Building2, Users, IndianRupee, Loader2, 
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from "recharts";
+import { toast } from "sonner";
 
 const COLORS = ["hsl(243, 75%, 59%)", "hsl(160, 84%, 39%)", "hsl(38, 92%, 50%)", "hsl(0, 84%, 60%)", "hsl(200, 70%, 50%)", "hsl(280, 60%, 55%)"];
 
@@ -24,6 +25,9 @@ const AdminAnalytics = () => {
       supabase.from("reviews").select("id", { count: "exact", head: true }),
     ]);
 
+    const countError = usersRes.error || hostelsRes.error || activeRes.error || bookingsRes.error || reviewsRes.error;
+    if (countError) { toast.error(countError.message); setLoading(false); return; }
+
     setStats({
       totalUsers: usersRes.count || 0,
       totalHostels: hostelsRes.count || 0,
@@ -33,7 +37,8 @@ const AdminAnalytics = () => {
     });
 
     // Booking trends
-    const { data: bookings } = await supabase.from("bookings").select("created_at, status");
+    const { data: bookings, error: bookingsError } = await supabase.from("bookings").select("created_at, status");
+    if (bookingsError) { toast.error(bookingsError.message); setLoading(false); return; }
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const monthMap: Record<string, { approved: number; pending: number; rejected: number }> = {};
     months.forEach(m => { monthMap[m] = { approved: 0, pending: 0, rejected: 0 }; });
@@ -46,7 +51,8 @@ const AdminAnalytics = () => {
     setBookingTrend(months.map(m => ({ month: m, ...monthMap[m] })));
 
     // City distribution
-    const { data: hostels } = await supabase.from("hostels").select("city, property_type");
+    const { data: hostels, error: hostelsDataError } = await supabase.from("hostels").select("city, property_type");
+    if (hostelsDataError) { toast.error(hostelsDataError.message); setLoading(false); return; }
     const cityMap: Record<string, number> = {};
     const typeMap: Record<string, number> = {};
     (hostels || []).forEach(h => {

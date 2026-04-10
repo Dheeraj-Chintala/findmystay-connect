@@ -43,7 +43,8 @@ const AdminReviewModeration = () => {
 
   const handleDelete = async (id: string) => {
     setProcessing(id);
-    await supabase.from("reviews").delete().eq("id", id);
+    const { error } = await supabase.from("reviews").delete().eq("id", id);
+    if (error) { toast.error(error.message); setProcessing(null); return; }
     toast.success("Review removed");
     fetchReviews();
     setProcessing(null);
@@ -51,7 +52,8 @@ const AdminReviewModeration = () => {
 
   const toggleVerified = async (id: string, current: boolean | null) => {
     setProcessing(id);
-    await supabase.from("reviews").update({ is_verified: !current }).eq("id", id);
+    const { error } = await supabase.from("reviews").update({ is_verified: !current }).eq("id", id);
+    if (error) { toast.error(error.message); setProcessing(null); return; }
     toast.success(!current ? "Marked as verified" : "Verification removed");
     fetchReviews();
     setProcessing(null);

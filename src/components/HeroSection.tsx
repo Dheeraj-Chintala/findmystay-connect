@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Search, MapPin, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import heroBg from "@/assets/hero-bg.jpg";
+const heroBg = "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1600&q=80";
 
 const HeroSection = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -20,7 +20,7 @@ const HeroSection = () => {
       {/* Background */}
       <div className="absolute inset-0">
         <img src={heroBg} alt="Modern accommodation" className="w-full h-full object-cover" loading="eager" />
-        <div className="absolute inset-0 bg-gradient-hero opacity-92" />
+        <div className="absolute inset-0 bg-gradient-hero opacity-[0.92]" />
         {/* Decorative blur circles */}
         <div className="absolute top-1/4 -left-32 w-64 h-64 bg-primary/20 rounded-full blur-3xl" />
         <div className="absolute bottom-1/4 -right-32 w-64 h-64 bg-accent/20 rounded-full blur-3xl" />

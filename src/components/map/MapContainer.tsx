@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Loader2, MapPin } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import PropertyPreviewCard from "./PropertyPreviewCard";

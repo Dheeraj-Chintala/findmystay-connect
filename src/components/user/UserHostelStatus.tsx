@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 interface Membership {
   id: string;
@@ -24,11 +25,12 @@ const UserHostelStatus = () => {
   useEffect(() => {
     if (!user) return;
     const fetch = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("hostel_members")
         .select("*")
         .eq("user_id", user.id)
         .order("joined_at", { ascending: false });
+      if (error) { toast.error(error.message); setLoading(false); return; }
 
       if (!data?.length) {
         setLoading(false);
@@ -36,10 +38,11 @@ const UserHostelStatus = () => {
       }
 
       const hostelIds = [...new Set(data.map((m) => m.hostel_id))];
-      const { data: hostels } = await supabase
+      const { data: hostels, error: hostelsError } = await supabase
         .from("hostels")
         .select("id, hostel_name, location, city")
         .in("id", hostelIds);
+      if (hostelsError) { toast.error(hostelsError.message); setLoading(false); return; }
 
       const hostelMap = new Map((hostels || []).map(h => [h.id, h]));
 

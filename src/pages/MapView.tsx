@@ -40,17 +40,19 @@ const MapView = () => {
         .select(`
           id, hostel_name, location, city, price_min, price_max, rating, review_count,
           latitude, longitude, property_type, verified_status, media_verification_badge, gender,
-          hostel_images(image_url, display_order)
+          hostel_images(image_url, display_order),
+          facilities(wifi, ac, food, laundry, gym, parking, power_backup, cctv)
         `)
         .eq("is_active", true)
         .eq("verified_status", "verified");
 
       if (data) {
-        const mapped: MapHostel[] = data.map((h: any) => ({
+        const mapped = data.map((h: any) => ({
           ...h,
           image_url: h.hostel_images?.sort((a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0))?.[0]?.image_url || null,
+          _facilities: Array.isArray(h.facilities) ? h.facilities[0] : h.facilities,
         }));
-        setHostels(mapped);
+        setHostels(mapped as any);
       }
       setLoading(false);
     };
@@ -109,6 +111,19 @@ const MapView = () => {
         const gMap: Record<string, string> = { Boys: "male", Girls: "female", "Co-living": "co-ed" };
         if (h.gender !== gMap[selectedGender]) return false;
       }
+      // Facilities
+      if (selectedFacilities.length > 0) {
+        const fac = (h as any)._facilities;
+        if (!fac) return false;
+        const facilityMap: Record<string, string> = {
+          WiFi: "wifi", Laundry: "laundry", Food: "food", AC: "ac",
+          Parking: "parking", Gym: "gym", CCTV: "cctv", "Power Backup": "power_backup",
+        };
+        for (const sf of selectedFacilities) {
+          const key = facilityMap[sf];
+          if (key && !fac[key]) return false;
+        }
+      }
       // Radius (only if user location known)
       if (userLocation && h.latitude && h.longitude) {
         const dist = getDistance(userLocation.lat, userLocation.lng, h.latitude, h.longitude);
@@ -116,7 +131,7 @@ const MapView = () => {
       }
       return true;
     });
-  }, [hostels, searchQuery, priceRange, minRating, selectedGender, radius, userLocation]);
+  }, [hostels, searchQuery, priceRange, minRating, selectedGender, selectedFacilities, radius, userLocation]);
 
   const handleSelectFromList = (hostel: MapHostel) => {
     setSelectedHostel(hostel);

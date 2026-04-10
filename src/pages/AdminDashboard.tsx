@@ -1,7 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import {
   BarChart3, BadgeCheck, Users, AlertTriangle,
-  MessageSquare, Building2, ShieldCheck, MessageSquareWarning, Activity, ShirtIcon
+  MessageSquare, Building2, ShieldCheck, Activity, ShirtIcon
 } from "lucide-react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
@@ -11,7 +11,6 @@ import AdminReviewModeration from "@/components/admin/AdminReviewModeration";
 import AdminFraudAlerts from "@/components/AdminFraudAlerts";
 import AdminMediaVerification from "@/components/AdminMediaVerification";
 import AdminHostelApprovals from "@/components/admin/AdminHostelApprovals";
-import AdminComplaints from "@/components/admin/AdminComplaints";
 import AdminActivityMonitor from "@/components/admin/AdminActivityMonitor";
 import AdminLaundry from "@/components/admin/AdminLaundry";
 
@@ -28,10 +27,9 @@ const sidebarGroups = [
     items: [
       { title: "Hostel Approvals", url: "/admin/approvals", icon: BadgeCheck },
       { title: "Users", url: "/admin/users", icon: Users },
-      { title: "Fraud Alerts", url: "/admin/fraud", icon: AlertTriangle },
+      { title: "Fraud Alerts & Complaints", url: "/admin/fraud", icon: AlertTriangle },
       { title: "Reviews", url: "/admin/reviews", icon: MessageSquare },
       { title: "Media Verification", url: "/admin/media", icon: Building2 },
-      { title: "Complaints", url: "/admin/complaints", icon: MessageSquareWarning },
       { title: "Laundry", url: "/admin/laundry", icon: ShirtIcon },
     ],
   },
@@ -60,7 +58,6 @@ const AdminDashboard = () => {
           <Route path="fraud" element={<AdminFraudAlerts />} />
           <Route path="reviews" element={<AdminReviewModeration />} />
           <Route path="media" element={<AdminMediaVerification />} />
-          <Route path="complaints" element={<AdminComplaints />} />
           <Route path="laundry" element={<AdminLaundry />} />
         </Routes>
       </DashboardLayout>

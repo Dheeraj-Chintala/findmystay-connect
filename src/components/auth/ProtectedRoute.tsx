@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
-type AppRole = "admin" | "owner" | "user";
+type AppRole = "admin" | "owner" | "user" | "owner_pending";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -48,6 +48,10 @@ const ProtectedRoute = ({
   }
 
   if (!user) return null;
+
+  if (allowedRoles.length > 0 && !allowedRoles.some((role) => hasRole(role))) {
+    return null;
+  }
 
   return <>{children}</>;
 };

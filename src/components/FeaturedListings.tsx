@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import PropertyCard, { FeaturedListing } from "./PropertyCard";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
-import listingPlaceholder from "@/assets/listing-1.jpg";
+const listingPlaceholder = "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&q=80";
 
 const FACILITY_LABELS: Record<string, string> = {
   wifi: "WiFi",

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { MapPin, Star, TrendingUp, Building2, Calendar, ArrowRight, Sparkles } from "lucide-react";
+import { MapPin, Star, TrendingUp, Building2, Calendar, ArrowRight, Sparkles, Loader2 } from "lucide-react";
 import ReferAndEarn from "./ReferAndEarn";
 import LifestyleServices from "./LifestyleServices";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 
 const UserHome = () => {
   const { user } = useAuth();
@@ -26,6 +27,11 @@ const UserHome = () => {
       supabase.from("saved_hostels").select("id", { count: "exact", head: true }).eq("user_id", user!.id),
       supabase.from("reviews").select("id", { count: "exact", head: true }).eq("user_id", user!.id),
     ]);
+
+    if (hostelsRes.error) toast.error(hostelsRes.error.message);
+    if (bookingsRes.error) toast.error(bookingsRes.error.message);
+    if (savedRes.error) toast.error(savedRes.error.message);
+    if (reviewsRes.error) toast.error(reviewsRes.error.message);
 
     setRecommended(hostelsRes.data || []);
     setStats({
@@ -86,7 +92,9 @@ const UserHome = () => {
           </Link>
         </div>
         {loading ? (
-          <div className="text-center py-8 text-muted-foreground text-sm">Loading...</div>
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          </div>
         ) : recommended.length === 0 ? (
           <div className="text-center py-12 bg-card rounded-2xl border border-border/50">
             <Building2 className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />

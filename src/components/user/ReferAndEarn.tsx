@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
-import { Copy, Share2, Gift, Users, Wallet, Trophy, CheckCircle } from "lucide-react";
+import { Copy, Share2, Gift, Users, Wallet, Trophy, CheckCircle, ArrowDownToLine, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/components/ui/sonner";
@@ -14,6 +19,10 @@ const ReferAndEarn = () => {
   const [referrals, setReferrals] = useState<any[]>([]);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showWithdraw, setShowWithdraw] = useState(false);
+  const [withdrawForm, setWithdrawForm] = useState({
+    accountHolder: "", bankName: "", accountNumber: "", ifscCode: "", upiId: "", amount: "",
+  });
 
   useEffect(() => {
     if (user) initReferral();
@@ -21,7 +30,7 @@ const ReferAndEarn = () => {
 
   const initReferral = async () => {
     // Generate or fetch referral code
-    const code = `SN${user!.id.slice(0, 6).toUpperCase()}`;
+    const code = `SN${user!.id.replace(/-/g, "").slice(0, 10).toUpperCase()}`;
     setReferralCode(code);
 
     // Ensure referral row exists
@@ -94,7 +103,13 @@ const ReferAndEarn = () => {
     { label: "Wallet Balance", value: `₹${Number(wallet.cash_value).toFixed(0)}`, icon: Wallet, color: "text-verified" },
   ];
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -163,6 +178,19 @@ const ReferAndEarn = () => {
         ))}
       </div>
 
+      {/* Withdraw Button */}
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          className="gap-2 rounded-xl"
+          disabled={Number(wallet.cash_value) < 100}
+          onClick={() => setShowWithdraw(true)}
+        >
+          <ArrowDownToLine className="w-4 h-4" />
+          {Number(wallet.cash_value) < 100 ? `Withdraw (min ₹100)` : "Withdraw"}
+        </Button>
+      </div>
+
       {/* Reward Tiers */}
       <div className="bg-card rounded-2xl border border-border/50 shadow-card p-4">
         <h4 className="font-heading font-semibold text-sm mb-3 flex items-center gap-2">
@@ -201,6 +229,74 @@ const ReferAndEarn = () => {
           </div>
         </div>
       )}
+
+      <Dialog open={showWithdraw} onOpenChange={setShowWithdraw}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Withdraw Funds</DialogTitle>
+            <DialogDescription>
+              Available balance: <strong>₹{Number(wallet.cash_value).toFixed(0)}</strong>. Fill in your bank details below.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label className="text-xs">Account Holder Name *</Label>
+              <Input className="rounded-xl" value={withdrawForm.accountHolder} onChange={e => setWithdrawForm({ ...withdrawForm, accountHolder: e.target.value })} placeholder="Full name" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-xs">Bank Name *</Label>
+                <Input className="rounded-xl" value={withdrawForm.bankName} onChange={e => setWithdrawForm({ ...withdrawForm, bankName: e.target.value })} placeholder="Bank name" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">IFSC Code *</Label>
+                <Input className="rounded-xl" value={withdrawForm.ifscCode} onChange={e => setWithdrawForm({ ...withdrawForm, ifscCode: e.target.value })} placeholder="IFSC code" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Account Number *</Label>
+              <Input className="rounded-xl" value={withdrawForm.accountNumber} onChange={e => setWithdrawForm({ ...withdrawForm, accountNumber: e.target.value })} placeholder="Account number" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">UPI ID (optional)</Label>
+              <Input className="rounded-xl" value={withdrawForm.upiId} onChange={e => setWithdrawForm({ ...withdrawForm, upiId: e.target.value })} placeholder="name@upi" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Amount to Withdraw *</Label>
+              <Input className="rounded-xl" type="number" min={100} max={wallet.cash_value} value={withdrawForm.amount} onChange={e => setWithdrawForm({ ...withdrawForm, amount: e.target.value })} placeholder={`Max ₹${Number(wallet.cash_value).toFixed(0)}`} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowWithdraw(false)}>Cancel</Button>
+            <Button
+              disabled={!withdrawForm.accountHolder || !withdrawForm.bankName || !withdrawForm.accountNumber || !withdrawForm.ifscCode || !withdrawForm.amount || Number(withdrawForm.amount) < 100 || Number(withdrawForm.amount) > wallet.cash_value}
+              onClick={async () => {
+                const { error } = await supabase.from("withdrawal_requests").insert({
+                  user_id: user!.id,
+                  amount: Number(withdrawForm.amount),
+                  payment_method: withdrawForm.upiId ? "upi" : "bank_transfer",
+                  payment_details: {
+                    account_holder: withdrawForm.accountHolder,
+                    bank_name: withdrawForm.bankName,
+                    account_number: withdrawForm.accountNumber,
+                    ifsc_code: withdrawForm.ifscCode,
+                    upi_id: withdrawForm.upiId || undefined,
+                  },
+                });
+                if (error) {
+                  toast.error(error.message || "Failed to submit withdrawal request");
+                  return;
+                }
+                toast.success("Withdrawal request submitted! Your funds will be transferred within 3-5 business days.");
+                setShowWithdraw(false);
+                setWithdrawForm({ accountHolder: "", bankName: "", accountNumber: "", ifscCode: "", upiId: "", amount: "" });
+              }}
+            >
+              <ArrowDownToLine className="w-4 h-4 mr-1" /> Submit Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -146,6 +146,7 @@ export type Database = {
           flags: Json
           hostel_id: string
           id: string
+          reported_by: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           risk_score: number
@@ -158,6 +159,7 @@ export type Database = {
           flags?: Json
           hostel_id: string
           id?: string
+          reported_by?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           risk_score?: number
@@ -170,6 +172,7 @@ export type Database = {
           flags?: Json
           hostel_id?: string
           id?: string
+          reported_by?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           risk_score?: number
@@ -303,6 +306,7 @@ export type Database = {
       }
       hostels: {
         Row: {
+          admin_notes: string | null
           city: string
           contact_email: string | null
           contact_phone: string | null
@@ -326,6 +330,7 @@ export type Database = {
           verified_status: Database["public"]["Enums"]["verification_status"]
         }
         Insert: {
+          admin_notes?: string | null
           city: string
           contact_email?: string | null
           contact_phone?: string | null
@@ -349,6 +354,7 @@ export type Database = {
           verified_status?: Database["public"]["Enums"]["verification_status"]
         }
         Update: {
+          admin_notes?: string | null
           city?: string
           contact_email?: string | null
           contact_phone?: string | null
@@ -504,6 +510,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          hostel_id: string | null
           id: string
           is_active: boolean
           name: string
@@ -513,6 +520,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          hostel_id?: string | null
           id?: string
           is_active?: boolean
           name: string
@@ -522,13 +530,22 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          hostel_id?: string | null
           id?: string
           is_active?: boolean
           name?: string
           price?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "laundry_services_hostel_id_fkey"
+            columns: ["hostel_id"]
+            isOneToOne: false
+            referencedRelation: "hostels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lifestyle_clicks: {
         Row: {
@@ -735,6 +752,8 @@ export type Database = {
           hostel_id: string
           id: string
           is_verified: boolean | null
+          owner_reply: string | null
+          owner_reply_at: string | null
           rating: number
           updated_at: string
           user_id: string
@@ -746,6 +765,8 @@ export type Database = {
           hostel_id: string
           id?: string
           is_verified?: boolean | null
+          owner_reply?: string | null
+          owner_reply_at?: string | null
           rating: number
           updated_at?: string
           user_id: string
@@ -757,6 +778,8 @@ export type Database = {
           hostel_id?: string
           id?: string
           is_verified?: boolean | null
+          owner_reply?: string | null
+          owner_reply_at?: string | null
           rating?: number
           updated_at?: string
           user_id?: string
@@ -989,6 +1012,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      withdrawal_requests: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          created_at: string
+          id: string
+          payment_details: Json
+          payment_method: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          created_at?: string
+          id?: string
+          payment_details?: Json
+          payment_method: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string
+          id?: string
+          payment_details?: Json
+          payment_method?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       verification_media: {
         Row: {

@@ -2,7 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import { useMemo } from "react";
 import {
   Home, Search, Heart, Calendar, Star, User,
-  Building2, ShirtIcon, Gift,
+  Building2, ShirtIcon, Gift, AlertTriangle,
 } from "lucide-react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
@@ -15,6 +15,7 @@ import UserReviews from "@/components/user/UserReviews";
 import UserProfile from "@/components/user/UserProfile";
 import UserLaundryGate from "@/components/user/UserLaundryGate";
 import UserHostelStatus from "@/components/user/UserHostelStatus";
+import UserFraudComplaints from "@/components/user/UserFraudComplaints";
 import { useLaundryEligible } from "@/hooks/useLaundryEligible";
 
 const UserDashboard = () => {
@@ -27,6 +28,7 @@ const UserDashboard = () => {
       ...(laundryLoading ? [] : showLaundry ? [{ title: "Laundry", url: "/dashboard/laundry", icon: ShirtIcon }] : []),
       { title: "Refer & Earn", url: "/dashboard/referrals", icon: Gift },
       { title: "Reviews", url: "/dashboard/reviews", icon: Star },
+      { title: "Report Issue", url: "/dashboard/complaints", icon: AlertTriangle },
     ];
 
     return [
@@ -66,6 +68,7 @@ const UserDashboard = () => {
           <Route path="laundry" element={<UserLaundryGate />} />
           <Route path="referrals" element={<ReferAndEarn />} />
           <Route path="reviews" element={<UserReviews />} />
+          <Route path="complaints" element={<UserFraudComplaints />} />
           <Route path="profile" element={<UserProfile />} />
         </Routes>
       </DashboardLayout>

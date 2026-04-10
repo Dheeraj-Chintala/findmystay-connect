@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 
 interface ServiceItem {
   name: string;
@@ -39,7 +40,8 @@ const LifestyleServices = () => {
   useEffect(() => {
     if (!user) return;
     const load = async () => {
-      const { data } = await supabase.from("user_wallet").select("reward_points").eq("user_id", user.id).maybeSingle();
+      const { data, error } = await supabase.from("user_wallet").select("reward_points").eq("user_id", user.id).maybeSingle();
+      if (error) { toast.error(error.message); return; }
       setRewardPoints(data?.reward_points ?? 0);
     };
     load();
