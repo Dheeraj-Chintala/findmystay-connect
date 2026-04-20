@@ -71,7 +71,11 @@ const PRPhotoshootRequest = () => {
       status: "pending" as any,
     });
     if (error) {
-      toast.error(error.message);
+      if (error.code === "23505") {
+        toast.info("An active photoshoot request already exists for this property.");
+      } else {
+        toast.error(error.message);
+      }
     } else {
       setSubmitted(true);
       toast.success("Photoshoot request submitted!");

@@ -67,7 +67,14 @@ const BookingPanel = ({ hostelId, hostelName, priceMin, priceMax, rooms, isActiv
         status: "pending" as any,
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === "23505") {
+          toast.info("You already have a pending booking request for this date.");
+          setSubmitted(true);
+          return;
+        }
+        throw error;
+      }
       setSubmitted(true);
       toast.success("Booking request submitted! The owner will review it shortly.");
     } catch (err: any) {

@@ -71,12 +71,12 @@ const UserReviews = () => {
 
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("reviews").insert({
+      const { error } = await supabase.from("reviews").upsert({
         user_id: user!.id,
         hostel_id: selectedHostel,
         rating,
         comment: comment.trim() || null,
-      });
+      }, { onConflict: "user_id,hostel_id" });
       if (error) throw error;
       toast.success("Review submitted!");
       setShowForm(false);

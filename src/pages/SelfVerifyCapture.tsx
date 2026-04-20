@@ -76,7 +76,14 @@ const SelfVerifyCapture = () => {
         .select()
         .single();
 
-      if (reqError) throw reqError;
+      if (reqError) {
+        if (reqError.code === "23505") {
+          toast.info("An active self-verification request already exists for this property.");
+          setSubmitting(false);
+          return;
+        }
+        throw reqError;
+      }
 
       // Upload each captured image
       for (const [stepId, capture] of Object.entries(captures)) {

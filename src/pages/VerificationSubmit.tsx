@@ -90,30 +90,15 @@ const VerificationSubmit = () => {
       const govIdUrl = await uploadFile(govIdFile, `${user.id}/gov-id`);
       const ownershipUrl = await uploadFile(ownershipFile, `${user.id}/ownership`);
 
-      // Check if doc already exists
-      const { data: existing } = await supabase
+      const { error: docError } = await supabase
         .from("verification_documents")
-        .select("id")
-        .eq("hostel_id", hostelId)
-        .eq("owner_id", user.id)
-        .maybeSingle();
-
-      if (existing) {
-        await supabase
-          .from("verification_documents")
-          .update({
-            government_id_url: govIdUrl,
-            ownership_proof_url: ownershipUrl,
-          })
-          .eq("id", existing.id);
-      } else {
-        await supabase.from("verification_documents").insert({
+        .upsert({
           hostel_id: hostelId,
           owner_id: user.id,
           government_id_url: govIdUrl,
           ownership_proof_url: ownershipUrl,
-        });
-      }
+        }, { onConflict: "hostel_id,owner_id" });
+      if (docError) throw docError;
 
       // Update hostel status to under_review
       await supabase

@@ -42,12 +42,15 @@ const ReferAndEarn = () => {
       .maybeSingle();
 
     if (!existing) {
-      await supabase.from("referrals").insert({
+      const { error: insertError } = await supabase.from("referrals").insert({
         referrer_user_id: user!.id,
         referral_code: code,
         reward_points: 0,
         status: "active",
       });
+      if (insertError && insertError.code !== "23505") {
+        toast.error(insertError.message || "Failed to initialize referral code");
+      }
     }
 
     // Fetch all referrals

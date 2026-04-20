@@ -56,24 +56,11 @@ serve(async (req) => {
 
     const admin = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: existingRedemption } = await admin
-      .from("referrals")
-      .select("id")
-      .eq("referred_user_id", user.id)
-      .limit(1)
-      .maybeSingle();
-
-    if (existingRedemption) {
-      return new Response(
-        JSON.stringify({ success: true, already_redeemed: true }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
     const { data: codeRow, error: codeErr } = await admin
       .from("referrals")
       .select("referrer_user_id, referral_code")
       .eq("referral_code", referralCode)
+      .is("referred_user_id", null)
       .limit(1)
       .maybeSingle();
 
@@ -101,6 +88,13 @@ serve(async (req) => {
     });
 
     if (insertErr) {
+      // Unique index on referred_user_id ensures retries/concurrent calls are idempotent.
+      if (insertErr.code === "23505") {
+        return new Response(
+          JSON.stringify({ success: true, already_redeemed: true }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
       console.error(insertErr);
       return new Response(JSON.stringify({ error: "Failed to record referral" }), {
         status: 500,
