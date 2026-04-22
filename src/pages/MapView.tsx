@@ -108,8 +108,12 @@ const MapView = () => {
       if (minRating > 0 && (!h.rating || h.rating < minRating)) return false;
       // Gender
       if (selectedGender !== "All") {
-        const gMap: Record<string, string> = { Boys: "male", Girls: "female", "Co-living": "co-ed" };
-        if (h.gender !== gMap[selectedGender]) return false;
+        const gMap: Record<string, string[]> = {
+          Boys: ["male"],
+          Girls: ["female"],
+          Others: ["others", "co-ed"],
+        };
+        if (!(gMap[selectedGender] || []).includes(h.gender)) return false;
       }
       // Facilities
       if (selectedFacilities.length > 0) {

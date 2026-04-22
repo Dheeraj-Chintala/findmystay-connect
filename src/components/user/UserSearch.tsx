@@ -86,7 +86,7 @@ const UserSearch = () => {
               <SelectItem value="all">All</SelectItem>
               <SelectItem value="male">Male</SelectItem>
               <SelectItem value="female">Female</SelectItem>
-              <SelectItem value="co-ed">Co-ed</SelectItem>
+              <SelectItem value="others">Others</SelectItem>
             </SelectContent>
           </Select>
         </div>

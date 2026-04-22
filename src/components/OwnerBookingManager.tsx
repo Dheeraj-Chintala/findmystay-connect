@@ -19,6 +19,11 @@ interface Booking {
   status: string;
   created_at: string;
   hostel_id: string;
+  room_type_id: string | null;
+  room_types: {
+    type: string;
+    available_beds: number;
+  } | null;
   hostels: {
     hostel_name: string;
   };
@@ -58,7 +63,7 @@ const OwnerBookingManager = () => {
 
     const { data } = await supabase
       .from("bookings")
-      .select("*, hostels!inner(hostel_name)")
+      .select("*, hostels!inner(hostel_name), room_types(type, available_beds)")
       .in("hostel_id", hostelIds)
       .order("created_at", { ascending: false });
 
@@ -69,28 +74,15 @@ const OwnerBookingManager = () => {
   const updateStatus = async (bookingId: string, status: string) => {
     setProcessing(bookingId);
     try {
-      const { error } = await supabase
-        .from("bookings")
-        .update({ status: status as Database["public"]["Enums"]["booking_status"] })
-        .eq("id", bookingId);
-
-      if (error) throw error;
-
       if (status === "checked_in") {
-        const booking = bookings.find(b => b.id === bookingId);
-        if (booking) {
-          await supabase
-            .from("hostel_members")
-            .upsert(
-              {
-                hostel_id: booking.hostel_id,
-                user_id: booking.user_id,
-                booking_id: booking.id,
-                status: "active",
-              },
-              { onConflict: "hostel_id,user_id" }
-            );
-        }
+        const { error } = await supabase.rpc("owner_checkin_booking", { p_booking_id: bookingId });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("bookings")
+          .update({ status: status as Database["public"]["Enums"]["booking_status"] })
+          .eq("id", bookingId);
+        if (error) throw error;
       }
 
       toast.success(
@@ -160,6 +152,12 @@ const OwnerBookingManager = () => {
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs text-muted-foreground mb-3">
+                {booking.room_types && (
+                  <span className="flex items-center gap-1">
+                    <LogIn className="w-3 h-3" />
+                    {booking.room_types.type} ({booking.room_types.available_beds} available)
+                  </span>
+                )}
                 {booking.email && (
                   <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{booking.email}</span>
                 )}
