@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Routes, Route } from "react-router-dom";
 import {
   BarChart3, Building2, Users, Star,
-  Camera, Bed, ShirtIcon, WashingMachine
+  Bed, ShirtIcon, WashingMachine, User
 } from "lucide-react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
@@ -10,11 +10,11 @@ import OwnerAnalytics from "@/components/owner/OwnerAnalytics";
 import OwnerPropertyManager from "@/components/owner/OwnerPropertyManager";
 import OwnerBookingManager from "@/components/OwnerBookingManager";
 import OwnerReviewManager from "@/components/owner/OwnerReviewManager";
-import OwnerMediaVerification from "@/components/owner/OwnerMediaVerification";
 import OwnerMembers from "@/components/owner/OwnerMembers";
 import OwnerLaundryRequests from "@/components/owner/OwnerLaundryRequests";
 import OwnerLaundryServices from "@/components/owner/OwnerLaundryServices";
 import AddHostelForm from "@/components/owner/AddHostelForm";
+import UserProfile from "@/components/user/UserProfile";
 
 const sidebarGroups = [
   {
@@ -32,8 +32,11 @@ const sidebarGroups = [
       { title: "Laundry Services", url: "/owner/laundry-services", icon: WashingMachine },
       { title: "Laundry Requests", url: "/owner/laundry", icon: ShirtIcon },
       { title: "Reviews", url: "/owner/reviews", icon: Star },
-      { title: "Media Verification", url: "/owner/media", icon: Camera },
     ],
+  },
+  {
+    label: "Account",
+    items: [{ title: "My Profile", url: "/owner/profile", icon: User }],
   },
 ];
 
@@ -58,7 +61,7 @@ const OwnerDashboard = () => {
           <Route path="laundry-services" element={<OwnerLaundryServices />} />
           <Route path="laundry" element={<OwnerLaundryRequests />} />
           <Route path="reviews" element={<OwnerReviewManager />} />
-          <Route path="media" element={<OwnerMediaVerification />} />
+          <Route path="profile" element={<UserProfile title="My Profile" subtitle="Manage your owner account information" showPreferences={false} />} />
         </Routes>
       </DashboardLayout>
     </ProtectedRoute>

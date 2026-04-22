@@ -104,7 +104,7 @@ const PropertyCard = ({ listing, index = 0 }: PropertyCardProps) => {
             </button>
             <div className="absolute bottom-3 left-3">
               <Badge variant="secondary" className="bg-card/90 backdrop-blur-sm text-[11px] capitalize shadow-sm">
-                {listing.gender}
+                {listing.gender === "co-ed" ? "Others" : listing.gender}
               </Badge>
             </div>
           </div>

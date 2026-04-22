@@ -84,7 +84,7 @@ const FeaturedListings = () => {
           rating: typeof h.rating === "number" ? h.rating : 0,
           verified: h.verified_status === "verified",
           type: h.property_type || "hostel",
-          gender: h.gender || "co-ed",
+          gender: h.gender || "others",
           price: h.price_min ?? 0,
           amenities: facilitiesToAmenities(fac || null),
           mediaVerificationBadge: h.media_verification_badge,

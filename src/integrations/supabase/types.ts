@@ -25,6 +25,7 @@ export type Database = {
           move_in_date: string | null
           phone: string | null
           room_id: string | null
+          room_type_id: string | null
           status: Database["public"]["Enums"]["booking_status"]
           updated_at: string
           user_id: string
@@ -39,6 +40,7 @@ export type Database = {
           move_in_date?: string | null
           phone?: string | null
           room_id?: string | null
+          room_type_id?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
           updated_at?: string
           user_id: string
@@ -53,6 +55,7 @@ export type Database = {
           move_in_date?: string | null
           phone?: string | null
           room_id?: string | null
+          room_type_id?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
           updated_at?: string
           user_id?: string
@@ -70,6 +73,13 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
             referencedColumns: ["id"]
           },
         ]
@@ -794,6 +804,50 @@ export type Database = {
           },
         ]
       }
+      room_types: {
+        Row: {
+          available_beds: number
+          created_at: string
+          id: string
+          occupied_beds: number
+          price: number
+          property_id: string
+          total_beds: number
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          available_beds: number
+          created_at?: string
+          id?: string
+          occupied_beds?: number
+          price: number
+          property_id: string
+          total_beds: number
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          available_beds?: number
+          created_at?: string
+          id?: string
+          occupied_beds?: number
+          price?: number
+          property_id?: string
+          total_beds?: number
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_types_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "hostels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rooms: {
         Row: {
           available_beds: number
@@ -1112,6 +1166,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      owner_checkin_booking: {
+        Args: { p_booking_id: string }
+        Returns: Database["public"]["Tables"]["bookings"]["Row"]
       }
     }
     Enums: {
