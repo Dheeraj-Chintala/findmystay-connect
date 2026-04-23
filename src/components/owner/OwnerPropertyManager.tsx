@@ -18,15 +18,6 @@ interface MediaItem {
   display_order: number | null;
 }
 
-interface RoomTypeRow {
-  id: string;
-  type: string;
-  price: number;
-  total_beds: number;
-  occupied_beds: number;
-  available_beds: number;
-}
-
 interface HostelWithRooms {
   id: string;
   hostel_name: string;
@@ -36,7 +27,7 @@ interface HostelWithRooms {
   price_max: number;
   verified_status: string;
   is_active: boolean;
-  room_types: RoomTypeRow[];
+  rooms: { id: string; sharing_type: string; price_per_month: number; total_beds: number; available_beds: number }[];
   images: MediaItem[];
   videos: MediaItem[];
 }
@@ -64,13 +55,13 @@ const OwnerPropertyManager = () => {
       const enriched: HostelWithRooms[] = [];
       for (const h of data) {
         const [roomsRes, imagesRes, videosRes] = await Promise.all([
-          supabase.from("room_types").select("*").eq("property_id", h.id).order("type"),
+          supabase.from("rooms").select("*").eq("hostel_id", h.id).order("sharing_type"),
           supabase.from("hostel_images").select("*").eq("hostel_id", h.id).order("display_order"),
           (supabase.from("hostel_videos") as any).select("*").eq("hostel_id", h.id).order("display_order"),
         ]);
         const images = (imagesRes.data || []).map((img: any) => ({ id: img.id, url: img.image_url, uploaded_by: img.uploaded_by || "owner", display_order: img.display_order }));
         const videos = (videosRes.data || []).map((vid: any) => ({ id: vid.id, url: vid.video_url, uploaded_by: vid.uploaded_by || "owner", display_order: vid.display_order }));
-        enriched.push({ ...h, room_types: roomsRes.data || [], images, videos });
+        enriched.push({ ...h, rooms: roomsRes.data || [], images, videos });
       }
       setHostels(enriched);
     }
@@ -80,12 +71,11 @@ const OwnerPropertyManager = () => {
   const handleAddRoom = async (hostelId: string) => {
     setSaving(hostelId);
     try {
-      await supabase.from("room_types").insert({
-        property_id: hostelId,
-        type: "single",
-        price: 5000,
+      await supabase.from("rooms").insert({
+        hostel_id: hostelId,
+        sharing_type: "single",
+        price_per_month: 5000,
         total_beds: 1,
-        occupied_beds: 0,
         available_beds: 1,
       });
       toast.success("Room added");
@@ -97,7 +87,7 @@ const OwnerPropertyManager = () => {
   const handleUpdateRoom = async (roomId: string, updates: any) => {
     setSaving(roomId);
     try {
-      await supabase.from("room_types").update(updates).eq("id", roomId);
+      await supabase.from("rooms").update(updates).eq("id", roomId);
       toast.success("Room updated");
       setEditRoom(prev => ({ ...prev, [roomId]: undefined }));
       fetchHostels();
@@ -108,8 +98,19 @@ const OwnerPropertyManager = () => {
   const handleDeleteRoom = async (roomId: string) => {
     setSaving(roomId);
     try {
-      await supabase.from("room_types").delete().eq("id", roomId);
+      await supabase.from("rooms").delete().eq("id", roomId);
       toast.success("Room removed");
+      fetchHostels();
+    } catch (err: any) { toast.error(err.message); }
+    setSaving(null);
+  };
+
+  const handleResubmit = async (hostelId: string) => {
+    setSaving(hostelId);
+    try {
+      const { error } = await supabase.from("hostels").update({ verified_status: "pending" as any }).eq("id", hostelId);
+      if (error) throw error;
+      toast.success("Property resubmitted for approval.");
       fetchHostels();
     } catch (err: any) { toast.error(err.message); }
     setSaving(null);
@@ -153,154 +154,108 @@ const OwnerPropertyManager = () => {
 
   return (
     <div className="space-y-4">
-      {hostels.map((hostel, i) => {
-        const totalBeds = hostel.room_types.reduce((sum, room) => sum + (room.total_beds || 0), 0);
-        const availableBeds = hostel.room_types.reduce((sum, room) => sum + (room.available_beds || 0), 0);
-        const occupiedBeds = hostel.room_types.reduce((sum, room) => sum + (room.occupied_beds || 0), 0);
-
-        return (
-          <motion.div
-            key={hostel.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.06 }}
-            className="bg-card rounded-2xl border border-border/50 shadow-card overflow-hidden"
+      {hostels.map((hostel, i) => (
+        <motion.div
+          key={hostel.id}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: i * 0.06 }}
+          className="bg-card rounded-2xl border border-border/50 shadow-card overflow-hidden"
+        >
+          {/* Header */}
+          <button
+            className="w-full p-5 flex items-center gap-4 text-left hover:bg-secondary/30 transition-colors"
+            onClick={() => setExpandedId(expandedId === hostel.id ? null : hostel.id)}
           >
-            <button
-              className="w-full p-5 flex items-center gap-4 text-left hover:bg-secondary/30 transition-colors"
-              onClick={() => setExpandedId(expandedId === hostel.id ? null : hostel.id)}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <h3 className="font-heading font-semibold text-sm">{hostel.hostel_name}</h3>
-                  {statusBadge(hostel.verified_status)}
-                </div>
-                <p className="text-muted-foreground text-xs">{hostel.location}, {hostel.city}</p>
-                {hostel.verified_status === "pending" && (
-                  <p className="text-amber-600 text-xs mt-1 font-medium">Awaiting admin approval.</p>
-                )}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <h3 className="font-heading font-semibold text-sm">{hostel.hostel_name}</h3>
+                {statusBadge(hostel.verified_status)}
               </div>
-              <div className="text-right shrink-0 flex flex-col items-end gap-2">
-                <p className="font-heading font-bold text-sm text-primary">₹{hostel.price_min.toLocaleString()} - ₹{hostel.price_max.toLocaleString()}</p>
-                <div className="text-muted-foreground text-xs text-right">
-                  <p>{hostel.room_types.length} room types · {hostel.images.length} photos · {hostel.videos.length} videos</p>
-                  <p>Total beds: {totalBeds} · Available: {availableBeds} · Occupied: {occupiedBeds}</p>
-                </div>
-              </div>
-            </button>
+              <p className="text-muted-foreground text-xs">{hostel.location}, {hostel.city}</p>
+              {hostel.verified_status === "rejected" && (
+                <p className="text-destructive text-xs mt-1 font-medium">Your property was rejected. Please update the details and resubmit.</p>
+              )}
+              {hostel.verified_status === "pending" && (
+                <p className="text-amber-600 text-xs mt-1 font-medium">Awaiting admin approval.</p>
+              )}
+            </div>
+            <div className="text-right shrink-0 flex flex-col items-end gap-2">
+              <p className="font-heading font-bold text-sm text-primary">₹{hostel.price_min.toLocaleString()} - ₹{hostel.price_max.toLocaleString()}</p>
+              <p className="text-muted-foreground text-xs">{hostel.rooms.length} room types · {hostel.images.length} photos · {hostel.videos.length} videos</p>
+              {hostel.verified_status === "rejected" && (
+                <Button variant="outline" size="sm" className="gap-1 rounded-xl text-xs" onClick={(e) => { e.stopPropagation(); handleResubmit(hostel.id); }} disabled={saving === hostel.id}>
+                  {saving === hostel.id ? <Loader2 className="w-3 h-3 animate-spin" /> : null} Edit & Resubmit
+                </Button>
+              )}
+            </div>
+          </button>
 
-            {expandedId === hostel.id && (
-              <div className="px-5 pb-5 space-y-5 border-t border-border/50 pt-4">
-                <MediaGalleryManager
-                  hostelId={hostel.id}
-                  images={hostel.images}
-                  videos={hostel.videos}
-                  onRefresh={fetchHostels}
-                />
+          {/* Expanded */}
+          {expandedId === hostel.id && (
+            <div className="px-5 pb-5 space-y-5 border-t border-border/50 pt-4">
+              <MediaGalleryManager
+                hostelId={hostel.id}
+                images={hostel.images}
+                videos={hostel.videos}
+                onRefresh={fetchHostels}
+              />
 
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-heading font-semibold text-xs flex items-center gap-1.5"><Bed className="w-3.5 h-3.5 text-primary" /> Room & Bed Management</h4>
-                    <Button variant="outline" size="sm" className="gap-1 rounded-xl text-xs" onClick={() => handleAddRoom(hostel.id)} disabled={saving === hostel.id}>
-                      <Plus className="w-3 h-3" /> Add Room
-                    </Button>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-12 gap-2 text-[10px] text-muted-foreground uppercase tracking-wide px-2">
-                      <span className="col-span-2">Room Type</span>
-                      <span className="col-span-2">Total Beds</span>
-                      <span className="col-span-2">Occupied</span>
-                      <span className="col-span-2">Available</span>
-                      <span className="col-span-2">Price</span>
-                      <span className="col-span-2 text-right">Actions</span>
-                    </div>
-                    {hostel.room_types.map((room) => (
-                      <div key={room.id} className="grid grid-cols-12 gap-2 items-center p-3 bg-secondary/30 rounded-xl">
-                        {editRoom[room.id] ? (
-                          <>
-                            <Select value={editRoom[room.id].type} onValueChange={v => setEditRoom(prev => ({ ...prev, [room.id]: { ...prev[room.id], type: v } }))}>
-                              <SelectTrigger className="h-8 col-span-2 text-xs rounded-lg"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="single">Single</SelectItem>
-                                <SelectItem value="double">Double</SelectItem>
-                                <SelectItem value="triple">Triple</SelectItem>
-                                <SelectItem value="4-sharing">4-sharing</SelectItem>
-                                <SelectItem value="6-sharing">6-sharing</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <Input type="number" className="h-8 col-span-2 text-xs rounded-lg" value={editRoom[room.id].total_beds} onChange={e => setEditRoom(prev => ({ ...prev, [room.id]: { ...prev[room.id], total_beds: e.target.value } }))} />
-                            <Input type="number" className="h-8 col-span-2 text-xs rounded-lg" value={editRoom[room.id].occupied_beds} onChange={e => setEditRoom(prev => ({ ...prev, [room.id]: { ...prev[room.id], occupied_beds: e.target.value } }))} />
-                            <div className="col-span-2 text-xs text-muted-foreground px-2">
-                              {Math.max(parseInt(editRoom[room.id].total_beds || "0", 10) - parseInt(editRoom[room.id].occupied_beds || "0", 10), 0)}
-                            </div>
-                            <Input type="number" className="h-8 col-span-2 text-xs rounded-lg" value={editRoom[room.id].price} onChange={e => setEditRoom(prev => ({ ...prev, [room.id]: { ...prev[room.id], price: e.target.value } }))} />
-                            <Button size="sm" className="h-8 gap-1 rounded-lg text-xs col-span-1 justify-self-end" onClick={() => {
-                              const total = parseInt(editRoom[room.id].total_beds, 10) || 0;
-                              const occupied = parseInt(editRoom[room.id].occupied_beds, 10) || 0;
-                              if (occupied < 0 || occupied > total || total <= 0) {
-                                toast.error("Occupied beds must be between 0 and total beds.");
-                                return;
-                              }
-                              handleUpdateRoom(room.id, {
-                                type: editRoom[room.id].type,
-                                price: parseInt(editRoom[room.id].price, 10),
-                                total_beds: total,
-                                occupied_beds: occupied,
-                                available_beds: total - occupied,
-                              });
-                            }} disabled={saving === room.id}>
-                              {saving === room.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+              {/* Rooms */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-heading font-semibold text-xs flex items-center gap-1.5"><Bed className="w-3.5 h-3.5 text-primary" /> Rooms & Pricing</h4>
+                  <Button variant="outline" size="sm" className="gap-1 rounded-xl text-xs" onClick={() => handleAddRoom(hostel.id)} disabled={saving === hostel.id}>
+                    <Plus className="w-3 h-3" /> Add Room
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {hostel.rooms.map(room => (
+                    <div key={room.id} className="flex items-center gap-2 p-3 bg-secondary/30 rounded-xl">
+                      {editRoom[room.id] ? (
+                        <>
+                          <Select value={editRoom[room.id].sharing_type} onValueChange={v => setEditRoom(prev => ({ ...prev, [room.id]: { ...prev[room.id], sharing_type: v } }))}>
+                            <SelectTrigger className="h-8 w-24 text-xs rounded-lg"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="single">Single</SelectItem>
+                              <SelectItem value="double">Double</SelectItem>
+                              <SelectItem value="triple">Triple</SelectItem>
+                              <SelectItem value="quad">Quad</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input type="number" className="h-8 w-20 text-xs rounded-lg" value={editRoom[room.id].price_per_month} onChange={e => setEditRoom(prev => ({ ...prev, [room.id]: { ...prev[room.id], price_per_month: e.target.value } }))} />
+                          <Input type="number" className="h-8 w-14 text-xs rounded-lg" value={editRoom[room.id].available_beds} onChange={e => setEditRoom(prev => ({ ...prev, [room.id]: { ...prev[room.id], available_beds: e.target.value } }))} />
+                          <Button size="sm" className="h-8 gap-1 rounded-lg text-xs" onClick={() => handleUpdateRoom(room.id, { sharing_type: editRoom[room.id].sharing_type, price_per_month: parseInt(editRoom[room.id].price_per_month), available_beds: parseInt(editRoom[room.id].available_beds) })} disabled={saving === room.id}>
+                            {saving === room.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-8 rounded-lg text-xs" onClick={() => setEditRoom(prev => ({ ...prev, [room.id]: undefined }))}>
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Badge variant="secondary" className="capitalize text-xs">{room.sharing_type}</Badge>
+                          <span className="text-xs font-heading font-bold text-primary">₹{room.price_per_month.toLocaleString()}/mo</span>
+                          <span className="text-xs text-muted-foreground">{room.available_beds}/{room.total_beds} beds</span>
+                          <div className="ml-auto flex gap-1">
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setEditRoom(prev => ({ ...prev, [room.id]: { sharing_type: room.sharing_type, price_per_month: room.price_per_month.toString(), available_beds: room.available_beds.toString() } }))}>
+                              <Edit2 className="w-3 h-3" />
                             </Button>
-                            <Button variant="ghost" size="sm" className="h-8 rounded-lg text-xs col-span-1" onClick={() => setEditRoom(prev => ({ ...prev, [room.id]: undefined }))}>
-                              <X className="w-3 h-3" />
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => handleDeleteRoom(room.id)} disabled={saving === room.id}>
+                              <Trash2 className="w-3 h-3" />
                             </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Badge variant="secondary" className="capitalize text-xs col-span-2">{room.type}</Badge>
-                            <span className="text-xs col-span-2">{room.total_beds}</span>
-                            <span className="text-xs col-span-2">{room.occupied_beds}</span>
-                            <span className="text-xs col-span-2">{room.available_beds}</span>
-                            <span className="text-xs font-heading font-bold text-primary col-span-2">₹{room.price.toLocaleString()}/mo</span>
-                            <div className="ml-auto flex gap-1 col-span-2 justify-end">
-                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setEditRoom(prev => ({ ...prev, [room.id]: { type: room.type, price: room.price.toString(), total_beds: room.total_beds.toString(), occupied_beds: room.occupied_beds.toString() } }))}>
-                                <Edit2 className="w-3 h-3" />
-                              </Button>
-                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => handleDeleteRoom(room.id)} disabled={saving === room.id}>
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    ))}
-                    {hostel.room_types.length === 0 && <p className="text-xs text-muted-foreground">No room types configured</p>}
-                  </div>
-                  {hostel.room_types.length > 0 && (
-                    <div className="mt-3 rounded-xl border border-border/50 bg-card p-3">
-                      <p className="text-xs font-medium mb-2">Room Availability Summary</p>
-                      <div className="grid sm:grid-cols-3 gap-2 text-xs">
-                        <div className="rounded-lg bg-secondary/50 p-2">
-                          <p className="text-muted-foreground">Total Beds</p>
-                          <p className="font-heading font-bold">{totalBeds}</p>
-                        </div>
-                        <div className="rounded-lg bg-accent/10 p-2">
-                          <p className="text-muted-foreground">Available Beds</p>
-                          <p className="font-heading font-bold text-accent">{availableBeds}</p>
-                        </div>
-                        <div className="rounded-lg bg-destructive/10 p-2">
-                          <p className="text-muted-foreground">Occupied Beds</p>
-                          <p className="font-heading font-bold text-destructive">{occupiedBeds}</p>
-                        </div>
-                      </div>
+                          </div>
+                        </>
+                      )}
                     </div>
-                  )}
+                  ))}
+                  {hostel.rooms.length === 0 && <p className="text-xs text-muted-foreground">No rooms configured</p>}
                 </div>
               </div>
-            )}
-          </motion.div>
-        );
-      })}
+            </div>
+          )}
+        </motion.div>
+      ))}
     </div>
   );
 };

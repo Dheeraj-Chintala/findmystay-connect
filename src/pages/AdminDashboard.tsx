@@ -1,7 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import {
   BarChart3, BadgeCheck, Users, AlertTriangle,
-  MessageSquare, Building2, ShieldCheck, Activity, ShirtIcon, User
+  MessageSquare, Building2, ShieldCheck, Activity, ShirtIcon
 } from "lucide-react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
@@ -13,7 +13,6 @@ import AdminMediaVerification from "@/components/AdminMediaVerification";
 import AdminHostelApprovals from "@/components/admin/AdminHostelApprovals";
 import AdminActivityMonitor from "@/components/admin/AdminActivityMonitor";
 import AdminLaundry from "@/components/admin/AdminLaundry";
-import UserProfile from "@/components/user/UserProfile";
 
 const sidebarGroups = [
   {
@@ -33,10 +32,6 @@ const sidebarGroups = [
       { title: "Media Verification", url: "/admin/media", icon: Building2 },
       { title: "Laundry", url: "/admin/laundry", icon: ShirtIcon },
     ],
-  },
-  {
-    label: "Account",
-    items: [{ title: "My Profile", url: "/admin/profile", icon: User }],
   },
 ];
 
@@ -64,7 +59,6 @@ const AdminDashboard = () => {
           <Route path="reviews" element={<AdminReviewModeration />} />
           <Route path="media" element={<AdminMediaVerification />} />
           <Route path="laundry" element={<AdminLaundry />} />
-          <Route path="profile" element={<UserProfile title="My Profile" subtitle="Manage your admin account information" showPreferences={false} />} />
         </Routes>
       </DashboardLayout>
     </ProtectedRoute>

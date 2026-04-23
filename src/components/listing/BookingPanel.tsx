@@ -13,8 +13,8 @@ import { motion } from "framer-motion";
 
 interface Room {
   id: string;
-  type: string;
-  price: number;
+  sharing_type: string;
+  price_per_month: number;
   available_beds: number;
   total_beds: number;
 }
@@ -39,7 +39,7 @@ const BookingPanel = ({ hostelId, hostelName, priceMin, priceMax, rooms, isActiv
   const [submitted, setSubmitted] = useState(false);
 
   const selectedRoomData = rooms.find(r => r.id === selectedRoom);
-  const displayPrice = selectedRoomData?.price || priceMin;
+  const displayPrice = selectedRoomData?.price_per_month || priceMin;
   const availableRooms = rooms.filter(r => r.available_beds > 0);
 
   const handleBookNow = async () => {
@@ -59,7 +59,7 @@ const BookingPanel = ({ hostelId, hostelName, priceMin, priceMax, rooms, isActiv
       const { error } = await supabase.from("bookings").insert({
         user_id: user.id,
         hostel_id: hostelId,
-        room_type_id: selectedRoom || null,
+        room_id: selectedRoom || null,
         full_name: user.user_metadata?.full_name || "",
         email: user.email || null,
         move_in_date: checkInDate,
@@ -126,7 +126,7 @@ const BookingPanel = ({ hostelId, hostelName, priceMin, priceMax, rooms, isActiv
             <SelectContent>
               {availableRooms.map(room => (
                 <SelectItem key={room.id} value={room.id}>
-                  {room.type} — ₹{room.price.toLocaleString()}/mo ({room.available_beds} beds available)
+                  {room.sharing_type} — ₹{room.price_per_month.toLocaleString()}/mo ({room.available_beds} beds available)
                 </SelectItem>
               ))}
             </SelectContent>

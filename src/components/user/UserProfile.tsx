@@ -8,17 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
-interface UserProfileProps {
-  title?: string;
-  subtitle?: string;
-  showPreferences?: boolean;
-}
-
-const UserProfile = ({
-  title = "My Profile",
-  subtitle = "Manage your personal info & preferences",
-  showPreferences = true,
-}: UserProfileProps) => {
+const UserProfile = () => {
   const { user } = useAuth();
   const [profile, setProfile] = useState({ full_name: "", email: "", phone: "" });
   const originalEmail = useRef("");
@@ -33,9 +23,7 @@ const UserProfile = ({
   const fetchProfile = async () => {
     const [profileRes, prefsRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", user!.id).single(),
-      showPreferences
-        ? supabase.from("user_preferences").select("*").eq("user_id", user!.id).maybeSingle()
-        : Promise.resolve({ data: null, error: null } as any),
+      supabase.from("user_preferences").select("*").eq("user_id", user!.id).maybeSingle(),
     ]);
     if (profileRes.data) {
       setProfile({ full_name: profileRes.data.full_name || "", email: profileRes.data.email || "", phone: profileRes.data.phone || "" });
@@ -74,17 +62,15 @@ const UserProfile = ({
     }).eq("user_id", user!.id);
     if (profileError) { toast.error(profileError.message); setSaving(false); return; }
 
-    if (showPreferences) {
-      const { error: prefsError } = await supabase.from("user_preferences").upsert({
-        user_id: user!.id,
-        preferred_city: preferences.preferred_city || null,
-        preferred_gender: preferences.preferred_gender || null,
-        budget_min: preferences.budget_min ? parseInt(preferences.budget_min) : null,
-        budget_max: preferences.budget_max ? parseInt(preferences.budget_max) : null,
-        preferred_sharing: preferences.preferred_sharing || null,
-      }, { onConflict: "user_id" });
-      if (prefsError) { toast.error(prefsError.message); setSaving(false); return; }
-    }
+    const { error: prefsError } = await supabase.from("user_preferences").upsert({
+      user_id: user!.id,
+      preferred_city: preferences.preferred_city || null,
+      preferred_gender: preferences.preferred_gender || null,
+      budget_min: preferences.budget_min ? parseInt(preferences.budget_min) : null,
+      budget_max: preferences.budget_max ? parseInt(preferences.budget_max) : null,
+      preferred_sharing: preferences.preferred_sharing || null,
+    }, { onConflict: "user_id" });
+    if (prefsError) { toast.error(prefsError.message); setSaving(false); return; }
 
     if (!emailChanged) toast.success("Profile updated!");
     originalEmail.current = profile.email;
@@ -97,9 +83,9 @@ const UserProfile = ({
     <div className="space-y-6 max-w-2xl">
       <div>
         <h2 className="font-heading font-bold text-xl mb-1 flex items-center gap-2">
-          <User className="w-5 h-5 text-primary" /> {title}
+          <User className="w-5 h-5 text-primary" /> My Profile
         </h2>
-        <p className="text-muted-foreground text-sm">{subtitle}</p>
+        <p className="text-muted-foreground text-sm">Manage your personal info & preferences</p>
       </div>
 
       {/* Personal Info */}
@@ -131,48 +117,47 @@ const UserProfile = ({
         </div>
       </div>
 
-      {showPreferences && (
-        <div className="bg-card rounded-2xl border border-border/50 shadow-card p-5 space-y-4">
-          <h3 className="font-heading font-semibold text-sm">Preferences</h3>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-xs">Preferred City</Label>
-              <Input value={preferences.preferred_city} onChange={(e) => setPreferences({ ...preferences, preferred_city: e.target.value })} className="rounded-xl" placeholder="e.g. Bangalore" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs">Gender Preference</Label>
-              <Select value={preferences.preferred_gender} onValueChange={(v) => setPreferences({ ...preferences, preferred_gender: v })}>
-                <SelectTrigger className="rounded-xl"><SelectValue placeholder="Any" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="male">Male</SelectItem>
-                  <SelectItem value="female">Female</SelectItem>
-                  <SelectItem value="others">Others</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs">Min Budget (₹/month)</Label>
-              <Input type="number" value={preferences.budget_min} onChange={(e) => setPreferences({ ...preferences, budget_min: e.target.value })} className="rounded-xl" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs">Max Budget (₹/month)</Label>
-              <Input type="number" value={preferences.budget_max} onChange={(e) => setPreferences({ ...preferences, budget_max: e.target.value })} className="rounded-xl" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs">Sharing Preference</Label>
-              <Select value={preferences.preferred_sharing} onValueChange={(v) => setPreferences({ ...preferences, preferred_sharing: v })}>
-                <SelectTrigger className="rounded-xl"><SelectValue placeholder="Any" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="single">Single</SelectItem>
-                  <SelectItem value="double">Double</SelectItem>
-                  <SelectItem value="triple">Triple</SelectItem>
-                  <SelectItem value="dormitory">Dormitory</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+      {/* Preferences */}
+      <div className="bg-card rounded-2xl border border-border/50 shadow-card p-5 space-y-4">
+        <h3 className="font-heading font-semibold text-sm">Preferences</h3>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="text-xs">Preferred City</Label>
+            <Input value={preferences.preferred_city} onChange={(e) => setPreferences({ ...preferences, preferred_city: e.target.value })} className="rounded-xl" placeholder="e.g. Bangalore" />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs">Gender Preference</Label>
+            <Select value={preferences.preferred_gender} onValueChange={(v) => setPreferences({ ...preferences, preferred_gender: v })}>
+              <SelectTrigger className="rounded-xl"><SelectValue placeholder="Any" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="male">Male</SelectItem>
+                <SelectItem value="female">Female</SelectItem>
+                <SelectItem value="co-ed">Co-ed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs">Min Budget (₹/month)</Label>
+            <Input type="number" value={preferences.budget_min} onChange={(e) => setPreferences({ ...preferences, budget_min: e.target.value })} className="rounded-xl" />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs">Max Budget (₹/month)</Label>
+            <Input type="number" value={preferences.budget_max} onChange={(e) => setPreferences({ ...preferences, budget_max: e.target.value })} className="rounded-xl" />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs">Sharing Preference</Label>
+            <Select value={preferences.preferred_sharing} onValueChange={(v) => setPreferences({ ...preferences, preferred_sharing: v })}>
+              <SelectTrigger className="rounded-xl"><SelectValue placeholder="Any" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="single">Single</SelectItem>
+                <SelectItem value="double">Double</SelectItem>
+                <SelectItem value="triple">Triple</SelectItem>
+                <SelectItem value="dormitory">Dormitory</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
-      )}
+      </div>
 
       <Button onClick={handleSave} disabled={saving} className="gap-2 rounded-xl">
         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}

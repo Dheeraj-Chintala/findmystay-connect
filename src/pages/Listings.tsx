@@ -33,7 +33,7 @@ const amenityIcons: Record<string, React.ReactNode> = {
 
 const cities = ["All Cities", "Bangalore", "Mumbai", "Delhi NCR", "Pune", "Hyderabad", "Chennai"];
 const propertyTypes = ["All Types", "Hostel", "PG", "Co-Living"];
-const genderOptions = ["All", "Male", "Female", "Others"];
+const genderOptions = ["All", "Male", "Female", "Co-ed"];
 
 const Listings = () => {
   const [searchParams] = useSearchParams();
@@ -79,12 +79,8 @@ const Listings = () => {
       const matchSearch = !search || h.hostel_name.toLowerCase().includes(q) || h.location.toLowerCase().includes(q) || h.city.toLowerCase().includes(q);
       const matchCity = selectedCity === "All Cities" || h.city.toLowerCase() === selectedCity.toLowerCase();
       const matchType = selectedType === "All Types" || h.property_type === selectedType.toLowerCase().replace("-", "-");
-      const gMap: Record<string, string[]> = {
-        Male: ["male"],
-        Female: ["female"],
-        Others: ["others", "co-ed"],
-      };
-      const matchGender = selectedGender === "All" || (gMap[selectedGender] || []).includes(h.gender);
+      const gMap: Record<string, string> = { Male: "male", Female: "female", "Co-ed": "co-ed" };
+      const matchGender = selectedGender === "All" || h.gender === gMap[selectedGender];
       return matchSearch && matchCity && matchType && matchGender;
     });
   }, [search, selectedCity, selectedType, selectedGender, hostels]);
@@ -159,7 +155,7 @@ const Listings = () => {
                             <Heart className="w-4 h-4 text-muted-foreground" />
                           </button>
                           <div className="absolute bottom-3 left-3">
-                            <Badge variant="secondary" className="bg-card/90 backdrop-blur-sm text-[11px] capitalize shadow-sm">{hostel.gender === "co-ed" ? "Others" : hostel.gender}</Badge>
+                            <Badge variant="secondary" className="bg-card/90 backdrop-blur-sm text-[11px] capitalize shadow-sm">{hostel.gender}</Badge>
                           </div>
                         </div>
                         <div className="p-4">

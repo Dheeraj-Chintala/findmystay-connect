@@ -51,11 +51,11 @@ const OwnerAnalytics = () => {
 
     if (bookingsError) { toast.error(bookingsError.message); setLoading(false); return; }
 
-    // Room types
+    // Rooms
     const { data: rooms, error: roomsError } = await supabase
-      .from("room_types")
-      .select("property_id, total_beds, occupied_beds, available_beds, price")
-      .in("property_id", hostelIds);
+      .from("rooms")
+      .select("hostel_id, total_beds, available_beds, price_per_month")
+      .in("hostel_id", hostelIds);
 
     if (roomsError) { toast.error(roomsError.message); setLoading(false); return; }
 
@@ -75,9 +75,9 @@ const OwnerAnalytics = () => {
     hostels.forEach(h => { occMap[h.id] = { name: h.hostel_name, occupied: 0, total: 0 }; });
     
     (rooms || []).forEach(r => {
-      if (occMap[r.property_id]) {
-        occMap[r.property_id].total += r.total_beds;
-        occMap[r.property_id].occupied += r.occupied_beds;
+      if (occMap[r.hostel_id]) {
+        occMap[r.hostel_id].total += r.total_beds;
+        occMap[r.hostel_id].occupied += (r.total_beds - r.available_beds);
       }
     });
     setOccupancyData(Object.values(occMap).map(o => ({
@@ -87,8 +87,8 @@ const OwnerAnalytics = () => {
 
     // Revenue estimate (occupied beds * avg price)
     const totalBeds = (rooms || []).reduce((s, r) => s + r.total_beds, 0);
-    const occupiedBeds = (rooms || []).reduce((s, r) => s + r.occupied_beds, 0);
-    const avgPrice = (rooms || []).length > 0 ? (rooms || []).reduce((s, r) => s + r.price, 0) / rooms!.length : 0;
+    const occupiedBeds = (rooms || []).reduce((s, r) => s + (r.total_beds - r.available_beds), 0);
+    const avgPrice = (rooms || []).length > 0 ? (rooms || []).reduce((s, r) => s + r.price_per_month, 0) / rooms!.length : 0;
     const estimatedRevenue = occupiedBeds * avgPrice;
 
     const monthlyRevenue: Record<string, number> = {};

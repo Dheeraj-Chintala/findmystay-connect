@@ -67,13 +67,12 @@ interface ListingReviewRow {
   user_id: string;
 }
 
-interface DbRoomType {
+interface DbRoom {
   id: string;
-  type: string;
-  price: number;
+  sharing_type: string;
+  price_per_month: number;
   available_beds: number;
   total_beds: number;
-  occupied_beds: number;
 }
 
 const ListingDetail = () => {
@@ -83,7 +82,7 @@ const ListingDetail = () => {
   const { user } = useAuth();
 
   const [dbHostel, setDbHostel] = useState<DbHostel | null>(null);
-  const [dbRooms, setDbRooms] = useState<DbRoomType[]>([]);
+  const [dbRooms, setDbRooms] = useState<DbRoom[]>([]);
   const [dbAmenities, setDbAmenities] = useState<string[]>([]);
   const [dbImages, setDbImages] = useState<string[]>([]);
   const [dbPhotos, setDbPhotos] = useState<{ id: string; url: string; uploaded_by: string; type: "photo" }[]>([]);
@@ -107,7 +106,7 @@ const ListingDetail = () => {
       setLoading(true);
       const [hostelRes, roomsRes, facilitiesRes, imagesRes, videosRes, reviewsRes] = await Promise.all([
         supabase.from("hostels").select("*").eq("id", id).maybeSingle(),
-        supabase.from("room_types").select("*").eq("property_id", id),
+        supabase.from("rooms").select("*").eq("hostel_id", id),
         supabase.from("facilities").select("*").eq("hostel_id", id).maybeSingle(),
         supabase.from("hostel_images").select("*").eq("hostel_id", id).order("display_order"),
         supabase.from("hostel_videos").select("*").eq("hostel_id", id).order("display_order"),
@@ -128,7 +127,7 @@ const ListingDetail = () => {
           .maybeSingle();
         if (profile?.full_name) setOwnerName(profile.full_name);
       }
-      setDbRooms((roomsRes.data || []) as DbRoomType[]);
+      setDbRooms((roomsRes.data || []) as DbRoom[]);
 
       // Parse facilities
       if (facilitiesRes.data) {
@@ -232,7 +231,7 @@ const ListingDetail = () => {
   const verified = dbHostel?.verified_status === "verified";
   const mediaVerBadge = dbHostel?.media_verification_badge;
   const propertyType = dbHostel?.property_type || "hostel";
-  const gender = dbHostel?.gender || "others";
+  const gender = dbHostel?.gender || "co-ed";
   const ownerDisplay = ownerName;
   const hostelId = id || "";
   const isActive = dbHostel?.is_active ?? false;
@@ -343,7 +342,7 @@ const ListingDetail = () => {
                         <VerificationBadge type={mediaVerBadge as any} size="md" />
                       )}
                       <Badge variant="secondary" className="capitalize">{propertyType}</Badge>
-                      <Badge variant="secondary" className="capitalize">{gender === "co-ed" ? "Others" : gender}</Badge>
+                      <Badge variant="secondary" className="capitalize">{gender}</Badge>
                     </div>
                     <h1 className="font-heading font-bold text-2xl md:text-3xl">{title}</h1>
                     <div className="flex items-center gap-2 mt-2 text-muted-foreground">
@@ -412,17 +411,15 @@ const ListingDetail = () => {
                 <>
                   <Separator />
                   <div>
-                    <h2 className="font-heading font-semibold text-lg mb-4">Room Types</h2>
+                    <h2 className="font-heading font-semibold text-lg mb-4">Available Rooms</h2>
                     <div className="space-y-3">
                       {dbRooms.map(room => (
                         <div key={room.id} className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 border border-border/50">
                           <div>
-                            <p className="font-medium text-sm capitalize">{room.type}</p>
-                            <p className="text-xs text-muted-foreground">
-                              Total: {room.total_beds} · Occupied: {room.occupied_beds} · Available: {room.available_beds}
-                            </p>
+                            <p className="font-medium text-sm capitalize">{room.sharing_type}</p>
+                            <p className="text-xs text-muted-foreground">{room.available_beds} of {room.total_beds} beds available</p>
                           </div>
-                          <span className="font-heading font-bold text-primary">₹{room.price.toLocaleString()}/mo</span>
+                          <span className="font-heading font-bold text-primary">₹{room.price_per_month.toLocaleString()}/mo</span>
                         </div>
                       ))}
                     </div>
