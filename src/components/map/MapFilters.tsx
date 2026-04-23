@@ -24,7 +24,7 @@ interface MapFiltersProps {
 }
 
 const FACILITIES = ["WiFi", "Laundry", "Food", "AC", "Parking", "Gym", "CCTV", "Power Backup"];
-const GENDERS = ["All", "Boys", "Girls", "Others"];
+const GENDERS = ["All", "Boys", "Girls", "Co-living"];
 const RADII = [2, 5, 10];
 
 const MapFilters = ({

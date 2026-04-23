@@ -175,7 +175,7 @@ const AdminHostelApprovals = () => {
                       {hostel.profiles?.email && <> · {hostel.profiles.email}</>}
                     </p>
                     <p className="text-muted-foreground text-xs mt-1">Submitted: {new Date(hostel.created_at).toLocaleDateString()}</p>
-                    <p className="text-muted-foreground text-xs capitalize">Gender: {hostel.gender === "co-ed" ? "Others" : hostel.gender}</p>
+                    <p className="text-muted-foreground text-xs capitalize">Gender: {hostel.gender}</p>
 
                     {amenities.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2">

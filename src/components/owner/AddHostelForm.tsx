@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Building2, MapPin, LocateFixed, IndianRupee, Users, FileText, Loader2, X, Plus, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CategoryPhotoUpload, { validateCategoryImages } from "@/components/owner/CategoryPhotoUpload";
@@ -29,18 +29,6 @@ interface AddHostelFormProps {
   onSuccess: () => void;
 }
 
-const ROOM_TYPE_OPTIONS = ["single", "double", "triple", "4-sharing", "6-sharing"] as const;
-type RoomType = typeof ROOM_TYPE_OPTIONS[number];
-type RoomConfig = Record<RoomType, { enabled: boolean; price: string; total_beds: string; occupied_beds: string }>;
-
-const createInitialRoomConfig = (): RoomConfig => ({
-  single: { enabled: true, price: "", total_beds: "1", occupied_beds: "0" },
-  double: { enabled: false, price: "", total_beds: "2", occupied_beds: "0" },
-  triple: { enabled: false, price: "", total_beds: "3", occupied_beds: "0" },
-  "4-sharing": { enabled: false, price: "", total_beds: "4", occupied_beds: "0" },
-  "6-sharing": { enabled: false, price: "", total_beds: "6", occupied_beds: "0" },
-});
-
 const AddHostelForm = ({ onSuccess }: AddHostelFormProps) => {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
@@ -54,7 +42,7 @@ const AddHostelForm = ({ onSuccess }: AddHostelFormProps) => {
     location: "",
     city: "",
     property_type: "hostel",
-    gender: "others",
+    gender: "co-ed",
     price_min: "",
     price_max: "",
     latitude: "",
@@ -63,11 +51,15 @@ const AddHostelForm = ({ onSuccess }: AddHostelFormProps) => {
     contact_email: "",
   });
   const [facilities, setFacilities] = useState<string[]>([]);
-  const [roomConfig, setRoomConfig] = useState<RoomConfig>(createInitialRoomConfig());
-  const selectedRoomTypes = useMemo(
-    () => ROOM_TYPE_OPTIONS.filter((roomType) => roomConfig[roomType].enabled),
-    [roomConfig]
-  );
+  const [rooms, setRooms] = useState([{ sharing_type: "single", price_per_month: "", total_beds: "1", available_beds: "1" }]);
+
+  const addRoom = () => setRooms([...rooms, { sharing_type: "double", price_per_month: "", total_beds: "2", available_beds: "2" }]);
+  const removeRoom = (i: number) => setRooms(rooms.filter((_, idx) => idx !== i));
+  const updateRoom = (i: number, field: string, value: string) => {
+    const updated = [...rooms];
+    (updated[i] as any)[field] = value;
+    setRooms(updated);
+  };
 
   const toggleFacility = (f: string) => {
     setFacilities(prev => prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f]);
@@ -102,30 +94,6 @@ const AddHostelForm = ({ onSuccess }: AddHostelFormProps) => {
     if (!user) return;
 
     // Validate photos
-    if (selectedRoomTypes.length === 0) {
-      toast.error("Select at least one room type.");
-      return;
-    }
-
-    for (const roomType of selectedRoomTypes) {
-      const row = roomConfig[roomType];
-      const totalBeds = parseInt(row.total_beds, 10);
-      const occupiedBeds = parseInt(row.occupied_beds, 10);
-      const price = parseInt(row.price, 10);
-      if (!price || price <= 0) {
-        toast.error(`Enter a valid monthly price for ${roomType}.`);
-        return;
-      }
-      if (!totalBeds || totalBeds <= 0) {
-        toast.error(`Enter a valid total beds count for ${roomType}.`);
-        return;
-      }
-      if (occupiedBeds < 0 || occupiedBeds > totalBeds) {
-        toast.error(`Occupied beds must be between 0 and total beds for ${roomType}.`);
-        return;
-      }
-    }
-
     const imgErrors = validateCategoryImages(categoryImages);
     setPhotoErrors(imgErrors);
     if (Object.keys(imgErrors).length > 0) {
@@ -164,22 +132,18 @@ const AddHostelForm = ({ onSuccess }: AddHostelFormProps) => {
       FACILITIES.forEach(f => { facilityData[f] = facilities.includes(f); });
       await supabase.from("facilities").insert({ hostel_id: hostel.id, ...facilityData });
 
-      // 3. Add room types
-      const roomTypeRows = selectedRoomTypes.map((roomType) => {
-        const row = roomConfig[roomType];
-        const totalBeds = parseInt(row.total_beds, 10);
-        const occupiedBeds = parseInt(row.occupied_beds, 10);
-        return {
-          property_id: hostel.id,
-          type: roomType,
-          price: parseInt(row.price, 10),
-          total_beds: totalBeds,
-          occupied_beds: occupiedBeds,
-          available_beds: totalBeds - occupiedBeds,
-        };
-      });
-      const { error: roomTypesErr } = await supabase.from("room_types").insert(roomTypeRows);
-      if (roomTypesErr) throw roomTypesErr;
+      // 3. Add rooms
+      for (const room of rooms) {
+        if (room.price_per_month) {
+          await supabase.from("rooms").insert({
+            hostel_id: hostel.id,
+            sharing_type: room.sharing_type,
+            price_per_month: parseInt(room.price_per_month),
+            total_beds: parseInt(room.total_beds) || 1,
+            available_beds: parseInt(room.available_beds) || 1,
+          });
+        }
+      }
 
       // 4. Upload images by category
       let imgIndex = 0;
@@ -217,7 +181,7 @@ const AddHostelForm = ({ onSuccess }: AddHostelFormProps) => {
         location: "",
         city: "",
         property_type: "hostel",
-        gender: "others",
+        gender: "co-ed",
         price_min: "",
         price_max: "",
         latitude: "",
@@ -226,7 +190,7 @@ const AddHostelForm = ({ onSuccess }: AddHostelFormProps) => {
         contact_email: "",
       });
       setFacilities([]);
-      setRoomConfig(createInitialRoomConfig());
+      setRooms([{ sharing_type: "single", price_per_month: "", total_beds: "1", available_beds: "1" }]);
       setCategoryImages({});
       setPhotoErrors({});
     } catch (err: any) {
@@ -309,9 +273,9 @@ const AddHostelForm = ({ onSuccess }: AddHostelFormProps) => {
                 <Select value={form.gender} onValueChange={v => setForm({ ...form, gender: v })}>
                   <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="male">Men</SelectItem>
-                    <SelectItem value="female">Women</SelectItem>
-                    <SelectItem value="others">Others</SelectItem>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                    <SelectItem value="co-ed">Co-ed</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -357,66 +321,49 @@ const AddHostelForm = ({ onSuccess }: AddHostelFormProps) => {
             </div>
           </div>
 
-          {/* Room Configuration */}
+          {/* Rooms */}
           <div className="space-y-3">
-            <h3 className="font-heading font-semibold text-sm flex items-center gap-2"><Users className="w-4 h-4 text-primary" /> Room Configuration</h3>
-            {ROOM_TYPE_OPTIONS.map((roomType) => {
-              const row = roomConfig[roomType];
-              return (
-                <div key={roomType} className="rounded-xl border border-border/50 bg-secondary/30 p-3">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Checkbox
-                      checked={row.enabled}
-                      onCheckedChange={(checked) =>
-                        setRoomConfig((prev) => ({ ...prev, [roomType]: { ...prev[roomType], enabled: !!checked } }))
-                      }
-                    />
-                    <Label className="text-sm capitalize">{roomType}</Label>
+            <div className="flex items-center justify-between">
+              <h3 className="font-heading font-semibold text-sm flex items-center gap-2"><Users className="w-4 h-4 text-primary" /> Rooms</h3>
+              <Button type="button" variant="outline" size="sm" className="gap-1 rounded-xl" onClick={addRoom}>
+                <Plus className="w-3 h-3" /> Add Room
+              </Button>
+            </div>
+            {rooms.map((room, i) => (
+              <div key={i} className="grid grid-cols-4 gap-2 items-end p-3 bg-secondary/30 rounded-xl">
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Type</Label>
+                  <Select value={room.sharing_type} onValueChange={v => updateRoom(i, "sharing_type", v)}>
+                    <SelectTrigger className="rounded-lg h-9 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="single">Single</SelectItem>
+                      <SelectItem value="double">Double</SelectItem>
+                      <SelectItem value="triple">Triple</SelectItem>
+                      <SelectItem value="quad">Quad</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Price/mo</Label>
+                  <Input type="number" placeholder="₹" className="rounded-lg h-9 text-xs" value={room.price_per_month} onChange={e => updateRoom(i, "price_per_month", e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Beds</Label>
+                  <Input type="number" className="rounded-lg h-9 text-xs" value={room.total_beds} onChange={e => updateRoom(i, "total_beds", e.target.value)} />
+                </div>
+                <div className="flex gap-1">
+                  <div className="space-y-1 flex-1">
+                    <Label className="text-[10px]">Available</Label>
+                    <Input type="number" className="rounded-lg h-9 text-xs" value={room.available_beds} onChange={e => updateRoom(i, "available_beds", e.target.value)} />
                   </div>
-                  {row.enabled && (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      <div className="space-y-1">
-                        <Label className="text-[10px]">Price/mo</Label>
-                        <Input
-                          type="number"
-                          min={1}
-                          placeholder="₹"
-                          className="rounded-lg h-9 text-xs"
-                          value={row.price}
-                          onChange={(e) =>
-                            setRoomConfig((prev) => ({ ...prev, [roomType]: { ...prev[roomType], price: e.target.value } }))
-                          }
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-[10px]">Total Beds</Label>
-                        <Input
-                          type="number"
-                          min={1}
-                          className="rounded-lg h-9 text-xs"
-                          value={row.total_beds}
-                          onChange={(e) =>
-                            setRoomConfig((prev) => ({ ...prev, [roomType]: { ...prev[roomType], total_beds: e.target.value } }))
-                          }
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-[10px]">Occupied Beds</Label>
-                        <Input
-                          type="number"
-                          min={0}
-                          className="rounded-lg h-9 text-xs"
-                          value={row.occupied_beds}
-                          onChange={(e) =>
-                            setRoomConfig((prev) => ({ ...prev, [roomType]: { ...prev[roomType], occupied_beds: e.target.value } }))
-                          }
-                        />
-                      </div>
-                    </div>
+                  {rooms.length > 1 && (
+                    <Button type="button" variant="ghost" size="icon" className="h-9 w-9 mt-auto text-destructive" onClick={() => removeRoom(i)}>
+                      <X className="w-3 h-3" />
+                    </Button>
                   )}
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
 
           {/* Photos */}

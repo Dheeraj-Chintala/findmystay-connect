@@ -147,8 +147,7 @@ const OwnerMembers = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>User Name</TableHead>
-                <TableHead>Mobile</TableHead>
+                <TableHead>Member</TableHead>
                 <TableHead>Contact</TableHead>
                 <TableHead>Hostel</TableHead>
                 <TableHead>Joined</TableHead>
@@ -167,20 +166,11 @@ const OwnerMembers = () => {
                       <span className="font-medium">{member.full_name}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm">
-                    {member.phone ? (
-                      <span className="inline-flex items-center gap-1 text-foreground">
-                        <Phone className="w-3 h-3" />
-                        {member.phone}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground italic">Not provided</span>
-                    )}
-                  </TableCell>
                   <TableCell>
                     <div className="space-y-1 text-xs text-muted-foreground">
                       {member.email && <div className="flex items-center gap-1"><Mail className="w-3 h-3" />{member.email}</div>}
-                      {!member.email && <span className="italic">No email</span>}
+                      {member.phone && <div className="flex items-center gap-1"><Phone className="w-3 h-3" />{member.phone}</div>}
+                      {!member.email && !member.phone && <span className="italic">No contact info</span>}
                     </div>
                   </TableCell>
                   <TableCell className="text-sm">{member.hostel_name}</TableCell>
@@ -221,20 +211,9 @@ const OwnerMembers = () => {
                       <span className="font-medium">{member.full_name}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm">
-                    {member.phone ? (
-                      <span className="inline-flex items-center gap-1 text-foreground">
-                        <Phone className="w-3 h-3" />
-                        {member.phone}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground italic">Not provided</span>
-                    )}
-                  </TableCell>
                   <TableCell>
                     <div className="space-y-1 text-xs text-muted-foreground">
                       {member.email && <div className="flex items-center gap-1"><Mail className="w-3 h-3" />{member.email}</div>}
-                      {!member.email && <span className="italic">No email</span>}
                     </div>
                   </TableCell>
                   <TableCell className="text-sm">{member.hostel_name}</TableCell>
